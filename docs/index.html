@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar na cidade — Advanced Fugas</title>
+<meta property="og:title" content="Advanced Fugas — Entrar na cidade">
+<meta property="og:description" content="Clique para abrir o MTA:SA direto no servidor Advanced Fugas.">
+<meta name="theme-color" content="#f97316">
+<link rel="icon" href="logo.png">
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;
+    background:radial-gradient(ellipse at 70% 40%,rgba(249,115,22,.25),transparent 60%),#09090b;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e4e4e7}
+  .card{width:100%;max-width:440px;text-align:center;background:#111114;border:1px solid #27272a;border-radius:18px;padding:36px 28px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  img{width:96px;height:96px;filter:drop-shadow(0 0 24px rgba(249,115,22,.5))}
+  .brand{margin-top:16px;color:#fb923c;font-weight:800;letter-spacing:5px;font-size:13px}
+  h1{margin-top:8px;font-size:28px;color:#fff}
+  p{margin-top:10px;color:#a1a1aa;line-height:1.5}
+  .btn{display:block;margin-top:24px;padding:15px;border-radius:12px;font-weight:700;font-size:17px;color:#fff;text-decoration:none;
+    background:linear-gradient(135deg,#fb923c,#ea580c);box-shadow:0 8px 24px rgba(249,115,22,.35)}
+  .btn:hover{filter:brightness(1.08)}
+  .ip{margin-top:18px;display:flex;gap:8px}
+  code{flex:1;padding:12px;border-radius:10px;background:#18181b;border:1px solid #27272a;font-size:14px;color:#fdba74;overflow-x:auto;white-space:nowrap}
+  button{padding:0 16px;border-radius:10px;border:1px solid #3f3f46;background:#27272a;color:#fff;font-weight:600;cursor:pointer}
+  small{display:block;margin-top:18px;color:#71717a;font-size:13px}
+  a.dl{color:#fb923c}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="logo.png" alt="">
+  <div class="brand">ADVANCED FUGAS</div>
+  <h1>Entrando na cidade...</h1>
+  <p>Se o MTA:SA não abriu sozinho, clique no botão abaixo e permita abrir o jogo.</p>
+  <a class="btn" id="go" href="mtasa://191.96.78.19:22575">🚔 Abrir MTA:SA e conectar</a>
+  <div class="ip"><code id="ip">mtasa://191.96.78.19:22575</code><button onclick="copy()">Copiar</button></div>
+  <small>Ainda não tem o jogo? <a class="dl" href="https://multitheftauto.com/">Baixe o MTA:SA aqui</a></small>
+</div>
+<script>
+  setTimeout(function () { location.href = document.getElementById('go').href; }, 400);
+  function copy() {
+    var t = document.getElementById('ip').textContent;
+    try { navigator.clipboard.writeText(t); } catch (e) {}
+    event.target.textContent = 'Copiado!';
+  }
+</script>
+</body>
+</html>

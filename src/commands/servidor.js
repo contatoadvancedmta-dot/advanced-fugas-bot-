@@ -20,8 +20,10 @@ module.exports = {
         { name: `${e.crown} Dono`, value: `<@${guild.ownerId}>`, inline: true }
       );
     if (config.brand.connect) embed.addFields({ name: `${e.car} Conectar`, value: `\`\`\`${config.brand.connect}\`\`\`` });
-    const components = config.brand.site ? [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('Site oficial').setStyle(ButtonStyle.Link).setURL(config.brand.site).setEmoji(e.star))] : [];
+    const buttons = [];
+    if (config.fivem.joinUrl) buttons.push(new ButtonBuilder().setLabel('Entrar na cidade').setStyle(ButtonStyle.Link).setURL(config.fivem.joinUrl).setEmoji(e.car));
+    if (config.brand.site) buttons.push(new ButtonBuilder().setLabel('Site oficial').setStyle(ButtonStyle.Link).setURL(config.brand.site).setEmoji(e.star));
+    const components = buttons.length ? [new ActionRowBuilder().addComponents(buttons)] : [];
     await interaction.reply(withBanner({ embeds: [embed], components }, embed, 'perfil-bot'));
   }
 };

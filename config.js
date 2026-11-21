@@ -199,7 +199,7 @@ module.exports = {
   fivem: {
     game: 'mta',                 // 'mta' (MTA:SA) ou 'fivem'
     ip: '191.96.78.19:22575',    // IP:porta do jogo
-    joinUrl: null,               // link https para botão (o Discord não aceita mtasa:// em botão)
+    joinUrl: 'https://contatoadvancedmta-dot.github.io/advanced-fugas-bot-/', // página que abre o MTA (GitHub Pages)
     updateSeconds: 60
   },
 
