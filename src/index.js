@@ -9,8 +9,22 @@ require('dotenv').config({
 const envFiles = [...new Set([process.cwd(), path.join(__dirname, '..'), path.join(__dirname, '..', '..')].map((d) => path.join(d, '.env')))].filter((p) => fs.existsSync(p));
 console.log(`[Advanced] Pasta: ${process.cwd()}`);
 console.log(`[Advanced] Arquivo .env: ${envFiles.length ? envFiles.join(', ') : 'NÃO ENCONTRADO'}`);
-if (!process.env.DISCORD_TOKEN) {
-  console.error('❌ DISCORD_TOKEN não encontrado. Crie o arquivo .env (Gerenciador de arquivos) com DISCORD_TOKEN, CLIENT_ID e GUILD_ID.');
+// Diagnóstico: mostra só os NOMES das variáveis de cada .env (nunca os valores)
+for (const file of envFiles) {
+  const lines = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith('#'));
+  const info = lines.map((l) => {
+    const m = /^\s*(?:export\s+)?([\w.-]+)\s*=\s*(.*)$/.exec(l);
+    if (!m) return `"${l.slice(0, 15)}..." (linha inválida)`;
+    const v = m[2].replace(/^['"]|['"]$/g, '').trim();
+    return `${m[1]}=${v ? `ok (${v.length} caracteres)` : 'VAZIO'}`;
+  });
+  console.log(`[Advanced]   ${file}: ${info.length ? info.join(' | ') : 'arquivo vazio'}`);
+}
+// aceita variações comuns do nome
+process.env.DISCORD_TOKEN ||= process.env.TOKEN || process.env.BOT_TOKEN || process.env.DISCORD_BOT_TOKEN || '';
+if (!process.env.DISCORD_TOKEN.trim()) {
+  console.error('❌ DISCORD_TOKEN está vazio ou não existe. No .env deve ter uma linha assim (sem espaços e sem aspas):');
+  console.error('   DISCORD_TOKEN=seu_token_aqui');
   process.exit(1);
 }
 console.log(`[Advanced] Token encontrado (${process.env.DISCORD_TOKEN.length} caracteres). Carregando comandos...`);
