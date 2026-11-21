@@ -107,6 +107,17 @@ module.exports = {
     admin: { weight: 3, label: 'Administrador', emoji: 'staff' }
   },
 
+  // Categorias das sugestões (aparecem no formulário)
+  suggestionCategories: [
+    { id: 'mapa', label: 'Mapa / Rotas de fuga', emoji: '🗺️' },
+    { id: 'veiculos', label: 'Veículos', emoji: '🚗' },
+    { id: 'policia', label: 'Polícia', emoji: '🚓' },
+    { id: 'economia', label: 'Economia / Empregos', emoji: '💰' },
+    { id: 'eventos', label: 'Eventos', emoji: '🎉' },
+    { id: 'discord', label: 'Discord / Bot', emoji: '💬' },
+    { id: 'outros', label: 'Outros', emoji: '📌' }
+  ],
+
   // Categorias de ticket
   ticketTypes: [
     { id: 'suporte', label: 'Suporte Geral', description: 'Dúvidas e ajuda no servidor', emoji: 'support' },

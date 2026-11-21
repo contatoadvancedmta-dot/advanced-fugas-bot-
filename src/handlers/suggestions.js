@@ -1,6 +1,7 @@
 const {
-  ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder,
-  TextInputStyle, MessageFlags, ChannelType
+  ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle,
+  MessageFlags, ChannelType, LabelBuilder, StringSelectMenuBuilder, FileUploadBuilder,
+  TextDisplayBuilder, AttachmentBuilder, EmbedBuilder
 } = require('discord.js');
 const config = require('../../config');
 const db = require('../database');
@@ -17,32 +18,41 @@ const STATUS = {
   recusada: { label: 'Recusada', get emoji() { return e.rejected; }, color: config.colors.error }
 };
 
-/** Modal que o jogador preenche */
+const MAX_IMAGES = 3;
+const MAX_SIZE = 8 * 1024 * 1024; // 8 MB por imagem
+const category = (id) => config.suggestionCategories.find((c) => c.id === id) ?? config.suggestionCategories.at(-1);
+
+/** Painel/formulário que o jogador preenche: título, categoria, descrição e imagens */
 function modal() {
   return new ModalBuilder()
     .setCustomId('sug:submit')
     .setTitle('💡 Nova sugestão — Advanced')
-    .addComponents(
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('titulo').setLabel('Título da sugestão')
-          .setStyle(TextInputStyle.Short).setMaxLength(80).setRequired(true)
-          .setPlaceholder('Ex: Adicionar nova rota de fuga no porto')
-      ),
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('descricao').setLabel('Descreva sua ideia')
-          .setStyle(TextInputStyle.Paragraph).setMaxLength(1500).setRequired(true)
-          .setPlaceholder('Explique com detalhes como funcionaria e por que melhora o servidor.')
-      )
+    .addTextDisplayComponents(new TextDisplayBuilder()
+      .setContent('Conte sua ideia para melhorar a cidade. Se tiver **prints, mapas ou referências**, anexe no final!'))
+    .addLabelComponents(
+      new LabelBuilder().setLabel('Título da sugestão').setTextInputComponent(
+        new TextInputBuilder().setCustomId('titulo').setStyle(TextInputStyle.Short)
+          .setMaxLength(80).setRequired(true).setPlaceholder('Ex: Adicionar nova rota de fuga no porto')),
+      new LabelBuilder().setLabel('Categoria').setStringSelectMenuComponent(
+        new StringSelectMenuBuilder().setCustomId('categoria').setPlaceholder('Sobre o que é sua sugestão?')
+          .setRequired(true)
+          .addOptions(config.suggestionCategories.map((c) => ({ label: c.label, value: c.id, emoji: c.emoji })))),
+      new LabelBuilder().setLabel('Descreva sua ideia').setTextInputComponent(
+        new TextInputBuilder().setCustomId('descricao').setStyle(TextInputStyle.Paragraph)
+          .setMaxLength(1500).setRequired(true).setPlaceholder('Explique como funcionaria e por que melhora o servidor.')),
+      new LabelBuilder().setLabel('Imagens (opcional)').setDescription(`Até ${MAX_IMAGES} imagens • PNG, JPG, GIF ou WEBP • até 8 MB`)
+        .setFileUploadComponent(new FileUploadBuilder().setCustomId('imagens').setRequired(false).setMinValues(0).setMaxValues(MAX_IMAGES))
     );
 }
 
-function buildEmbed(sug, guild) {
+/** Embed principal + até 2 embeds extras que viram galeria de imagens no Discord */
+function buildEmbeds(sug) {
   const s = STATUS[sug.status];
   const up = sug.up.length, down = sug.down.length;
   const embed = base(s.color)
     .setAuthor({ name: `Sugestão #${sug.id} • ${sug.authorTag}`, iconURL: sug.authorAvatar })
     .setTitle(`${e.suggestion} ${sug.title}`)
-    .setDescription(`>>> ${sug.description}`)
+    .setDescription(`${sug.category ? `${category(sug.category).emoji} **${category(sug.category).label}**\n` : ''}>>> ${sug.description}`)
     .addFields(
       { name: `${e.up} A favor`, value: `\`${up}\``, inline: true },
       { name: `${e.down} Contra`, value: `\`${down}\``, inline: true },
@@ -56,7 +66,12 @@ function buildEmbed(sug, guild) {
       value: `${sug.reason || '*Sem motivo informado.*'}\n${e.arrow} por <@${sug.reviewer}>`
     });
   }
-  return embed;
+  const images = sug.images ?? [];
+  if (!images.length) return [embed];
+  // mesma URL em todas = o Discord junta as imagens numa galeria
+  const galleryUrl = `https://discord.com/sugestao/${sug.id}`;
+  embed.setURL(galleryUrl).setImage(`attachment://${images[0]}`);
+  return [embed, ...images.slice(1).map((name) => new EmbedBuilder().setURL(galleryUrl).setImage(`attachment://${name}`))];
 }
 
 function buildButtons(sug) {
@@ -82,10 +97,29 @@ async function submit(interaction) {
     return interaction.reply({ embeds: [error('O canal de sugestões ainda não foi configurado. Peça para um admin usar `/setup canal`.')], flags: EPH });
   }
 
+  // Imagens enviadas no formulário: baixa e reenvia junto da sugestão (o link do formulário expira)
+  const uploaded = [...(interaction.fields.getUploadedFiles('imagens')?.values() ?? [])];
+  const invalid = uploaded.filter((a) => !/^image\/(png|jpe?g|gif|webp)$/.test(a.contentType ?? '') || a.size > MAX_SIZE);
+  if (invalid.length) {
+    return interaction.reply({ embeds: [error(`Envie apenas imagens **PNG, JPG, GIF ou WEBP** de até **8 MB**.\nArquivo recusado: \`${invalid[0].name}\``)], flags: EPH });
+  }
+  await interaction.deferReply({ flags: EPH });
+
+  const id = ++g.suggestionCounter;
+  const files = [];
+  for (const [n, a] of uploaded.slice(0, MAX_IMAGES).entries()) {
+    const buf = await fetch(a.url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+    if (!buf) continue;
+    const ext = (a.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z]/g, '') || 'png';
+    files.push(new AttachmentBuilder(Buffer.from(buf), { name: `sugestao-${id}-${n + 1}.${ext}` }));
+  }
+
   const sug = {
-    id: ++g.suggestionCounter,
+    id,
     title: interaction.fields.getTextInputValue('titulo'),
+    category: interaction.fields.getStringSelectValues('categoria')?.[0] ?? null,
     description: interaction.fields.getTextInputValue('descricao'),
+    images: files.map((f) => f.name),
     authorId: interaction.user.id,
     authorTag: interaction.user.username,
     authorAvatar: interaction.user.displayAvatarURL(),
@@ -94,7 +128,7 @@ async function submit(interaction) {
     createdAt: Date.now()
   };
 
-  const msg = await channel.send({ embeds: [buildEmbed(sug)], components: buildButtons(sug) });
+  const msg = await channel.send({ embeds: buildEmbeds(sug), components: buildButtons(sug), files });
   sug.messageId = msg.id;
   sug.channelId = channel.id;
   g.suggestions[sug.id] = sug;
@@ -104,9 +138,9 @@ async function submit(interaction) {
     msg.startThread({ name: `💬 Sugestão #${sug.id} — Debate`, autoArchiveDuration: 10080 }).catch(() => null);
   }
 
-  await interaction.reply({
-    embeds: [success(`Sua sugestão **#${sug.id}** foi enviada em ${channel}!\nA comunidade já pode votar. ${e.star}`, 'Sugestão enviada')],
-    flags: EPH
+  await interaction.editReply({
+    embeds: [success(`Sua sugestão **#${sug.id}** foi enviada em ${channel}!${files.length ? ` (${files.length} imagem${files.length > 1 ? 'ns' : ''})` : ''}\nA comunidade já pode votar. ${e.star}`, 'Sugestão enviada')],
+    components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Ver sugestão').setStyle(ButtonStyle.Link).setURL(msg.url))]
   });
 }
 
@@ -123,7 +157,7 @@ async function vote(interaction, sug, type) {
     text = `Você votou ${type === 'up' ? `**a favor** ${e.up}` : `**contra** ${e.down}`}.`;
   }
   db.save();
-  await interaction.update({ embeds: [buildEmbed(sug)], components: buildButtons(sug) });
+  await interaction.update({ embeds: buildEmbeds(sug), components: buildButtons(sug) });
   await interaction.followUp({ embeds: [success(text, 'Voto registrado')], flags: EPH });
 }
 
@@ -147,7 +181,7 @@ async function review(interaction, sug, action) {
 
   const channel = interaction.guild.channels.cache.get(sug.channelId);
   const msg = channel && (await channel.messages.fetch(sug.messageId).catch(() => null));
-  if (msg) await msg.edit({ embeds: [buildEmbed(sug)], components: buildButtons(sug) });
+  if (msg) await msg.edit({ embeds: buildEmbeds(sug), components: buildButtons(sug) });
 
   const st = STATUS[sug.status];
   await interaction.reply({ embeds: [success(`Sugestão **#${sug.id}** marcada como ${st.emoji} **${st.label}**.`)], flags: EPH });

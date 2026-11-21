@@ -1,5 +1,6 @@
-node_modules/
+*.zip
 .env
 data/
-*.zip
+node_modules
+node_modules/
 previa-*.png

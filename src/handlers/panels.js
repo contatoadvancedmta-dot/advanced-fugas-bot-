@@ -34,6 +34,7 @@ function suggestionPanel() {
       'Tem uma ideia para deixar o **Advanced** ainda melhor?',
       line,
       `${e.dot} Clique em **Enviar sugestão** e preencha o formulário`,
+      `${e.dot} Escolha a **categoria** e anexe até **3 imagens** (prints, mapas...)`,
       `${e.dot} A comunidade vota com ${e.up} / ${e.down}`,
       `${e.dot} A staff analisa e você recebe a resposta na DM`,
       line,
