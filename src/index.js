@@ -1,3 +1,4 @@
+console.log('[Advanced] Iniciando o bot...');
 const fs = require('node:fs');
 const path = require('node:path');
 // procura o .env na pasta atual, na pasta do projeto e na raiz do servidor (hospedagens)
@@ -5,10 +6,14 @@ require('dotenv').config({
   path: [process.cwd(), path.join(__dirname, '..'), path.join(__dirname, '..', '..')].map((d) => path.join(d, '.env')).filter((p) => fs.existsSync(p)),
   quiet: true
 });
+const envFiles = [...new Set([process.cwd(), path.join(__dirname, '..'), path.join(__dirname, '..', '..')].map((d) => path.join(d, '.env')))].filter((p) => fs.existsSync(p));
+console.log(`[Advanced] Pasta: ${process.cwd()}`);
+console.log(`[Advanced] Arquivo .env: ${envFiles.length ? envFiles.join(', ') : 'NÃO ENCONTRADO'}`);
 if (!process.env.DISCORD_TOKEN) {
-  console.error('❌ DISCORD_TOKEN não encontrado. Crie o arquivo .env com DISCORD_TOKEN, CLIENT_ID e GUILD_ID.');
+  console.error('❌ DISCORD_TOKEN não encontrado. Crie o arquivo .env (Gerenciador de arquivos) com DISCORD_TOKEN, CLIENT_ID e GUILD_ID.');
   process.exit(1);
 }
+console.log(`[Advanced] Token encontrado (${process.env.DISCORD_TOKEN.length} caracteres). Carregando comandos...`);
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 
 const client = new Client({
@@ -37,4 +42,11 @@ for (const file of fs.readdirSync(path.join(__dirname, 'events')).filter((f) => 
 }
 
 process.on('unhandledRejection', (err) => console.error('[Erro]', err));
-client.login(process.env.DISCORD_TOKEN);
+console.log(`[Advanced] ${client.commands.size} comandos carregados. Conectando ao Discord...`);
+client.login(process.env.DISCORD_TOKEN.trim()).catch((err) => {
+  const msg = String(err?.message ?? err);
+  if (/disallowed intents/i.test(msg)) console.error('❌ Ative "Server Members Intent" e "Message Content Intent" no Developer Portal > Bot.');
+  else if (/invalid token|TokenInvalid/i.test(msg)) console.error('❌ Token inválido. Gere outro em Developer Portal > Bot > Reset Token e coloque no .env.');
+  else console.error('❌ Falha ao conectar:', msg);
+  process.exit(1);
+});
