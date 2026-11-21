@@ -21,7 +21,7 @@ module.exports = {
     logo: 'https://cdn.discordapp.com/embed/avatars/0.png', // troque pela logo do servidor
     banner: null, // URL de banner reserva (usado só se faltar o arquivo em assets/banners)
     site: null,   // ex: 'https://advancedfugas.com'
-    connect: null // ex: 'connect cfx.re/join/xxxxx'
+    connect: 'mtasa://191.96.78.19:22575' // endereço para entrar na cidade
   },
 
   /**
@@ -144,7 +144,7 @@ module.exports = {
   announceTemplates: {
     livre: { label: 'Em branco', emoji: 'announce', color: 'laranja', title: '', text: '' },
     online: { label: 'Cidade online', emoji: 'online', color: 'verde', title: 'A CIDADE ESTÁ ONLINE!',
-      text: 'Os portões estão abertos! Entre agora e comece sua fuga.\n\n**Conectar:** F8 → connect ...' },
+      text: 'Os portões estão abertos! Entre agora e comece sua fuga.\n\n**Conectar:** mtasa://191.96.78.19:22575' },
     reinicio: { label: 'Reinício', emoji: 'clock', color: 'amarelo', title: 'Reinício programado',
       text: 'A cidade vai reiniciar em **10 minutos**.\nGuarde seus veículos e finalize suas ações para não perder nada.' },
     manutencao: { label: 'Manutenção', emoji: 'staff', color: 'vermelho', title: 'Cidade em manutenção',
@@ -195,10 +195,11 @@ module.exports = {
     kickNewDuringRaid: true // durante o raid expulsa contas novas automaticamente
   },
 
-  // Status do servidor FiveM (atualiza sozinho no canal de status)
+  // Status da cidade (atualiza sozinho no canal de status)
   fivem: {
-    ip: null,        // ex: '123.45.67.89:30120'
-    joinUrl: null,   // ex: 'https://cfx.re/join/abc123' (vira botão "Conectar")
+    game: 'mta',                 // 'mta' (MTA:SA) ou 'fivem'
+    ip: '191.96.78.19:22575',    // IP:porta do jogo
+    joinUrl: null,               // link https para botão (o Discord não aceita mtasa:// em botão)
     updateSeconds: 60
   },
 

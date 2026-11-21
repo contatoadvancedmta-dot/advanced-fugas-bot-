@@ -1,17 +1,30 @@
 /**
- * STATUS DO SERVIDOR FIVEM — mensagem que se atualiza sozinha
+ * STATUS DA CIDADE (MTA:SA ou FiveM) — mensagem que se atualiza sozinha
  */
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const config = require('../../config');
 const db = require('../database');
 const { base, e, line } = require('../utils/embeds');
 const { withBanner } = require('../utils/banner');
+const mta = require('../utils/mta');
 
 let last = { online: false, players: [], max: 0 };
 
 async function fetchStatus() {
-  const { ip } = config.fivem;
+  const { ip, game } = config.fivem;
   if (!ip) return { online: false, configured: false, players: [], max: 0 };
+  if (game === 'mta') {
+    const [host, port = '22003'] = ip.split(':');
+    try {
+      const r = await mta.query(host, port);
+      // o MTA manda a lista de nomes; se vier vazia mas com contagem, usa só o número
+      const players = r.list.length ? r.list.map((p, n) => ({ id: n + 1, name: p.name, ping: p.ping })) : Array.from({ length: r.players }, () => null);
+      last = { online: true, configured: true, players, max: r.max, hostname: r.name, gamemode: r.gamemode, map: r.map };
+    } catch {
+      last = { online: false, configured: true, players: [], max: 0 };
+    }
+    return last;
+  }
   try {
     const opts = { signal: AbortSignal.timeout(5000) };
     const [dyn, players] = await Promise.all([
@@ -41,11 +54,12 @@ function statusMessage(s) {
   } else if (!s.online) {
     embed.setDescription(`${e.offline} **Servidor OFFLINE**\n${line}\nA cidade está fora do ar no momento. Fique de olho nos anúncios!`);
   } else {
-    const list = s.players.sort((a, b) => a.id - b.id).slice(0, 30).map((p) => `\`${String(p.id).padStart(3, ' ')}\` ${p.name}`).join('\n');
+    const list = s.players.filter(Boolean).sort((a, b) => a.id - b.id).slice(0, 30).map((p) => `\`${String(p.id).padStart(3, ' ')}\` ${p.name}`).join('\n');
     embed.setDescription(`${e.online} **Servidor ONLINE**\n${line}`)
       .addFields(
         { name: `${e.user} Jogadores`, value: `**${n}/${s.max}**\n${bar(n, s.max)}`, inline: true },
-        { name: `${e.clock} Atualizado`, value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
+        { name: `${e.clock} Atualizado`, value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+        ...(s.gamemode ? [{ name: `${e.star} Modo`, value: s.gamemode.slice(0, 100), inline: true }] : [])
       );
     if (config.brand.connect) embed.addFields({ name: `${e.car} Conectar`, value: `\`\`\`${config.brand.connect}\`\`\`` });
     if (list) embed.addFields({ name: `Na cidade agora${n > 30 ? ` (30 de ${n})` : ''}`, value: list.slice(0, 1024) });
