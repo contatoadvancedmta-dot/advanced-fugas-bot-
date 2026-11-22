@@ -18,7 +18,9 @@ const CHANNELS = {
   ticketlogs: 'Canal de logs/transcripts dos tickets',
   denuncias: 'Canal de denúncias (staff)',
   recursos: 'Canal de recursos de banimento (staff)',
-  punicoes: 'Canal público de punições'
+  punicoes: 'Canal público de punições',
+  contador: 'Contador de jogadores (canal de voz)',
+  contadormembros: 'Contador de membros (canal de voz)'
 };
 const ROLES = {
   autorole: 'Cargo automático ao entrar',
@@ -36,17 +38,25 @@ module.exports = {
       .addStringOption((o) => o.setName('tipo').setDescription('Tipo').setRequired(true)
         .addChoices(...Object.entries(CHANNELS).map(([value, name]) => ({ name, value }))))
       .addChannelOption((o) => o.setName('canal').setDescription('Canal ou categoria').setRequired(true)
-        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildCategory)))
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildCategory, ChannelType.GuildVoice)))
     .addSubcommand((s) => s.setName('cargo').setDescription('Define um cargo')
       .addStringOption((o) => o.setName('tipo').setDescription('Tipo').setRequired(true)
         .addChoices(...Object.entries(ROLES).map(([value, name]) => ({ name, value }))))
       .addRoleOption((o) => o.setName('cargo').setDescription('Cargo').setRequired(true)))
-    .addSubcommand((s) => s.setName('ver').setDescription('Mostra a configuração atual')),
+    .addSubcommand((s) => s.setName('ver').setDescription('Mostra a configuração atual'))
+    .addSubcommand((s) => s.setName('contador').setDescription('Cria os contadores de jogadores e membros no topo do servidor')),
 
   async execute(interaction) {
     if (!(await perms.check(interaction, 'admin'))) return;
     const g = db.guild(interaction.guild.id);
     const sub = interaction.options.getSubcommand();
+
+    if (sub === 'contador') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const status = config.fivem.ip ? await require('../handlers/fivem').fetchStatus() : null;
+      const created = await require('../handlers/counters').create(interaction.guild, status);
+      return interaction.editReply({ embeds: [success(`Contadores criados no topo do servidor:\n${created.map((c) => `${e.arrow} ${c}`).join('\n')}\n\nEles se atualizam sozinhos (o Discord permite renomear a cada ~5 min).`, 'Contadores criados')] });
+    }
     const EPH = MessageFlags.Ephemeral;
 
     if (sub === 'canal') {

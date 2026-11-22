@@ -7,6 +7,7 @@ const db = require('../database');
 const { base, e, line } = require('../utils/embeds');
 const { withBanner } = require('../utils/banner');
 const mta = require('../utils/mta');
+const counters = require('./counters');
 
 let last = { online: false, players: [], max: 0 };
 
@@ -72,8 +73,9 @@ function statusMessage(s) {
 
 /** Atualiza a mensagem de status em todos os servidores (chamado em intervalo) */
 async function tick(client) {
-  if (!config.fivem.ip) return;
+  if (!config.fivem.ip) return counters.update(client, null);
   const s = await fetchStatus();
+  await counters.update(client, s);
   for (const guild of client.guilds.cache.values()) {
     const g = db.guild(guild.id);
     const channel = g.channels.status && guild.channels.cache.get(g.channels.status);
