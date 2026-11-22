@@ -37,7 +37,15 @@ module.exports = {
     const tipo = interaction.options.getString('tipo');
     if (!(await perms.check(interaction, tipo === 'staff' ? 'owner' : 'admin'))) return;
     const channel = interaction.options.getChannel('canal') ?? interaction.channel;
-    await channel.send(await TYPES[tipo]());
+    const sent = await channel.send(await TYPES[tipo]());
+    if (tipo === 'status') { // essa mensagem passa a ser atualizada sozinha
+      const g = require('../database').guild(interaction.guild.id);
+      const oldCh = g.channels.status && interaction.guild.channels.cache.get(g.channels.status);
+      if (g.status?.messageId && g.status.messageId !== sent.id) await oldCh?.messages.delete(g.status.messageId).catch(() => null);
+      g.channels.status = channel.id;
+      g.status = { messageId: sent.id };
+      require('../database').save();
+    }
     await interaction.reply({ embeds: [success(`Painel enviado em ${channel}.`)], flags: MessageFlags.Ephemeral });
   }
 };

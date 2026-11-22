@@ -13,13 +13,16 @@ const CHANNELS = {
   anuncios: 'Canal de anúncios',
   whitelist: 'Canal de análise da whitelist (staff)',
   whitelistresultado: 'Canal de resultados da whitelist',
-  status: 'Canal de status da cidade',
+  status: 'Status da cidade (atualiza sozinho)',
   levelup: 'Canal de avisos de nível',
   ticketlogs: 'Canal de logs/transcripts dos tickets',
   denuncias: 'Canal de denúncias (staff)',
   recursos: 'Canal de recursos de banimento (staff)',
   punicoes: 'Canal público de punições',
-  rankings: 'Canal de rankings (atualiza sozinho)',
+  ranking_tickets: '🏆 Ranking de tickets (quem mais assumiu)',
+  ranking_apoiadores: '🏆 Ranking de apoiadores',
+  ranking_fugas: '🏆 Ranking das fugas',
+  rankings: '🏆 Todos os rankings juntos num canal',
   eventos: 'Canal de eventos de fuga',
   clips: 'Canal de clipes (melhores fugas)',
   contador: 'Contador de jogadores (canal de voz)',
@@ -66,10 +69,13 @@ module.exports = {
       const tipo = interaction.options.getString('tipo');
       const ch = interaction.options.getChannel('canal');
       g.channels[tipo] = ch.id; db.save();
-      if (tipo === 'rankings') { // posta os rankings na hora
-        g.rankingMessages = {};
-        db.save();
+      if (tipo.startsWith('ranking')) { // posta os rankings na hora
         require('../handlers/rankingBoard').update(interaction.client).catch(() => null);
+      }
+      if (tipo === 'status') { // posta o status na hora e passa a atualizar essa mensagem
+        g.status = {};
+        db.save();
+        require('../handlers/fivem').tick(interaction.client).catch(() => null);
       }
       return interaction.reply({ embeds: [success(`**${CHANNELS[tipo]}** definido como ${ch}.`)], flags: EPH });
     }
