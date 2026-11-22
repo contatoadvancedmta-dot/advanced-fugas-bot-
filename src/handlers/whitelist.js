@@ -90,7 +90,7 @@ async function open(interaction) {
 async function submit(interaction) {
   const g = db.guild(interaction.guild.id);
   const channel = g.channels.whitelist && interaction.guild.channels.cache.get(g.channels.whitelist);
-  if (!channel) return interaction.reply({ embeds: [error('Canal de análise da whitelist não configurado (`/setup canal`).')], flags: EPH });
+  if (!channel) return interaction.reply({ embeds: [error('Canal de análise da whitelist não configurado (`/setup staff` → Análise da whitelist).')], flags: EPH });
 
   const prev = g.whitelist[interaction.user.id];
   const entry = {

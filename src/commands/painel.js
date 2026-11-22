@@ -13,6 +13,7 @@ const TYPES = {
   verificacao: () => panels.verifyPanel(),
   regras: () => panels.rulesPanel(),
   staff: () => admin.panel(),
+  sugestoes_staff: () => require('../handlers/suggestions').staffPanel(),
   whitelist: () => whitelist.panel(),
   status: async () => fivem.statusMessage(await fivem.fetchStatus())
 };
@@ -23,6 +24,7 @@ module.exports = {
     .setDescription('🧩 Envia um painel com botões')
     .addStringOption((o) => o.setName('tipo').setDescription('Qual painel').setRequired(true).addChoices(
       { name: '💡 Sugestões', value: 'sugestoes' },
+      { name: '🛠️ Sugestões da staff', value: 'sugestoes_staff' },
       { name: '🎫 Tickets', value: 'tickets' },
       { name: '✔️ Verificação', value: 'verificacao' },
       { name: '📜 Regras', value: 'regras' },

@@ -363,7 +363,7 @@ const clipButtons = (c) => [new ActionRowBuilder().addComponents(
 async function createClip(interaction, { title, url, attachment }) {
   const g = store(interaction.guild.id);
   const ch = g.channels.clips && interaction.guild.channels.cache.get(g.channels.clips);
-  if (!ch) throw new Error('O canal de clipes não foi configurado (`/setup canal` → Canal de clipes).');
+  if (!ch) throw new Error('O canal de clipes não foi configurado (`/setup canal` → Clipes).');
   const c = { id: ++g.clipCounter, title, url, userId: interaction.user.id, username: interaction.user.username, avatar: interaction.user.displayAvatarURL(), at: Date.now(), votes: [] };
   const files = [];
   if (attachment) {

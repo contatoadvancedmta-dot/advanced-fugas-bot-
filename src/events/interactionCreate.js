@@ -15,6 +15,7 @@ const pixCommand = require('../commands/pix');
 // prefixo do customId -> handler
 const ROUTES = {
   sug: suggestions.handle,
+  ssug: suggestions.handle,
   ticket: tickets.handle,
   admin: admin.handle,
   verify: panels.handleVerify,

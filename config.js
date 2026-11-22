@@ -128,6 +128,17 @@ module.exports = {
     { id: 'outros', label: 'Outros', emoji: '📌' }
   ],
 
+  // Categorias das sugestões da staff
+  staffSuggestionCategories: [
+    { id: 'regras', label: 'Regras da cidade', emoji: '📜' },
+    { id: 'moderacao', label: 'Moderação / Punições', emoji: '🛡️' },
+    { id: 'tickets', label: 'Tickets / Atendimento', emoji: '🎫' },
+    { id: 'eventos', label: 'Eventos', emoji: '🎉' },
+    { id: 'equipe', label: 'Organização da equipe', emoji: '👥' },
+    { id: 'bot', label: 'Bot / Discord', emoji: '🤖' },
+    { id: 'outros', label: 'Outros', emoji: '📌' }
+  ],
+
   // Categorias de ticket
   ticketTypes: [
     { id: 'suporte', label: 'Suporte Geral', description: 'Dúvidas e ajuda no servidor', emoji: 'support' },
