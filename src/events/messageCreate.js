@@ -8,6 +8,7 @@ const { base, e } = require('../utils/embeds');
 const perms = require('../utils/permissions');
 const { sendLog } = require('../utils/logger');
 const xp = require('../handlers/xp');
+const db = require('../database');
 const moderation = require('../handlers/moderation');
 
 const INVITE = /(discord\.gg|discord(app)?\.com\/invite)\/[\w-]+/i;
@@ -51,7 +52,16 @@ module.exports = {
   name: 'messageCreate',
   async execute(message) {
     if (!message.guild || message.author.bot || !message.member) return;
-    if (perms.hasLevel(message.member, 'suporte')) return xp.grant(message); // staff ignora automod
+    if (perms.hasLevel(message.member, 'suporte')) {
+      // primeira resposta da staff num ticket (para o tempo médio de resposta)
+      const t = db.guild(message.guild.id).tickets[message.channel.id];
+      if (t && !t.firstResponseAt && message.author.id !== t.ownerId) {
+        t.firstResponseAt = Date.now();
+        t.firstResponder = message.author.id;
+        db.save();
+      }
+      return xp.grant(message); // staff ignora automod
+    }
 
     const hit = check(message);
     if (hit?.invite) {

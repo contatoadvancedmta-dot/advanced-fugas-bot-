@@ -111,6 +111,7 @@ const HELP = {
       'Botões **Aprovar/Reprovar** whitelist *(Suporte)*',
       '`/anuncio criar` — construtor com prévia e agendamento *(Admin)*',
       'Tickets: **Gerar PIX**, adicionar membros, notificar *(Suporte)*',
+      '`/tickets ranking` — quem mais assumiu • `/tickets staff` — seu desempenho',
       '`/painel` — enviar painéis com botões *(Admin)*',
       '`/setup` — configurar canais e cargos *(Admin)*',
       'Botões de **Aprovar/Recusar** sugestões *(Moderador)*',

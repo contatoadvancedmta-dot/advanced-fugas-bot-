@@ -147,6 +147,10 @@ async function claim(interaction, t) {
   if (!(await perms.check(interaction, 'suporte'))) return;
   if (t.claimedBy) return interaction.reply({ embeds: [error(`Já assumido por <@${t.claimedBy}>.`)], flags: EPH });
   t.claimedBy = interaction.user.id;
+  // registra para o ranking de quem mais assumiu
+  const g = db.guild(interaction.guild.id);
+  g.ticketClaims ??= [];
+  g.ticketClaims.push({ staffId: interaction.user.id, number: t.number, type: t.type, ownerId: t.ownerId, at: Date.now() });
   db.save();
   await refreshControl(interaction.channel, t);
   await interaction.reply({ embeds: [base(config.colors.info).setDescription(`${e.claim} ${interaction.user} **assumiu este atendimento.**`)] });
@@ -347,7 +351,16 @@ async function close(interaction, t) {
     components: [stars]
   }).catch(() => null);
 
-  delete db.guild(guild.id).tickets[interaction.channel.id];
+  // histórico para o ranking e estatísticas
+  const gh = db.guild(guild.id);
+  gh.ticketHistory ??= [];
+  gh.ticketHistory.push({
+    number: t.number, type: t.type, ownerId: t.ownerId, claimedBy: t.claimedBy ?? null, closedBy: interaction.user.id,
+    createdAt: t.createdAt, closedAt: Date.now(), firstResponseAt: t.firstResponseAt ?? null, firstResponder: t.firstResponder ?? null,
+    paid: paid.map((p) => ({ value: p.value, product: p.product }))
+  });
+  if (gh.ticketHistory.length > 5000) gh.ticketHistory.splice(0, gh.ticketHistory.length - 5000);
+  delete gh.tickets[interaction.channel.id];
   db.save();
   setTimeout(() => interaction.channel.delete().catch(() => null), 5000);
 }
