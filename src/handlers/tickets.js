@@ -213,7 +213,7 @@ async function createPix(interaction, t) {
   const id = t.payments.length + 1;
   const txid = `ADV${t.number}P${id}`;
   const code = pix.payload({ key: cfg.key, name: cfg.receiverName, city: cfg.city, amount: value, txid, description: product });
-  const file = new AttachmentBuilder(await pix.qrBuffer(code), { name: 'pix.png' });
+  const file = new AttachmentBuilder(await pix.qrBuffer(code, interaction.guild), { name: 'pix.png' });
 
   t.payments.push({ id, value, product, txid, code, by: interaction.user.id, at: Date.now(), status: 'pendente' });
   db.save();

@@ -37,8 +37,15 @@ function payload({ key, name, city, amount, txid, description }) {
   return p + crc16(p);
 }
 
-async function qrBuffer(code) {
-  return QRCode.toBuffer(code, { width: 420, margin: 2, errorCorrectionLevel: 'M' });
+/** PNG do QR com o visual configurado em /pix qrcode (cores, logo, moldura) */
+async function qrBuffer(code, guild) {
+  try {
+    const qr = guild ? require('../database').guild(guild.id).pix?.qr ?? {} : {};
+    return await require('./qrstyle').render(code, qr, guild);
+  } catch (err) {
+    console.error('[QR] Falha no QR personalizado, usando o simples:', err.message);
+    return QRCode.toBuffer(code, { width: 420, margin: 2, errorCorrectionLevel: 'M' });
+  }
 }
 
 module.exports = { payload, qrBuffer, crc16 };
