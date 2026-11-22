@@ -10,6 +10,7 @@ const giveaways = require('../handlers/giveaways');
 const moderation = require('../handlers/moderation');
 const appeals = require('../handlers/appeals');
 const fugas = require('../handlers/fugas');
+const pixCommand = require('../commands/pix');
 
 // prefixo do customId -> handler
 const ROUTES = {
@@ -26,7 +27,8 @@ const ROUTES = {
   trate: tickets.rate,
   ev: fugas.handleEvent,
   x1: fugas.handleDuel,
-  clip: fugas.handleClip
+  clip: fugas.handleClip,
+  pixcfg: pixCommand.handleModal
 };
 // estes funcionam também na DM do bot
 const DM_ROUTES = new Set(['appeal', 'trate']);

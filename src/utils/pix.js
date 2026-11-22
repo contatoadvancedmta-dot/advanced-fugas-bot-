@@ -42,3 +42,59 @@ async function qrBuffer(code) {
 }
 
 module.exports = { payload, qrBuffer, crc16 };
+
+/* ───────────── Configuração e validação de chave ───────────── */
+
+const KEY_TYPES = {
+  cpf: 'CPF', cnpj: 'CNPJ', email: 'E-mail', telefone: 'Telefone', aleatoria: 'Chave aleatória'
+};
+
+function validCpf(d) {
+  if (!/^\d{11}$/.test(d) || /^(\d)\1+$/.test(d)) return false;
+  const calc = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+  return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
+}
+
+function validCnpj(d) {
+  if (!/^\d{14}$/.test(d) || /^(\d)\1+$/.test(d)) return false;
+  const calc = (n) => { const w = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]; let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * w[i]; const r = s % 11; return r < 2 ? 0 : 11 - r; };
+  return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
+}
+
+/** Valida e deixa a chave no formato que o Banco Central espera. Lança erro com mensagem amigável. */
+function normalizeKey(type, raw) {
+  const v = String(raw ?? '').trim();
+  const digits = v.replace(/\D/g, '');
+  switch (type) {
+    case 'cpf':
+      if (!validCpf(digits)) throw new Error('CPF inválido. Confira os números.');
+      return digits;
+    case 'cnpj':
+      if (!validCnpj(digits)) throw new Error('CNPJ inválido. Confira os números.');
+      return digits;
+    case 'email':
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || v.length > 77) throw new Error('E-mail inválido.');
+      return v.toLowerCase();
+    case 'telefone': {
+      const d = digits.startsWith('55') && digits.length >= 12 ? digits : `55${digits}`;
+      if (!/^55\d{10,11}$/.test(d)) throw new Error('Telefone inválido. Use DDD + número, ex: 11 91234-5678.');
+      return `+${d}`;
+    }
+    case 'aleatoria':
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) throw new Error('Chave aleatória inválida (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).');
+      return v.toLowerCase();
+    default:
+      throw new Error('Tipo de chave inválido.');
+  }
+}
+
+/** Configuração ativa: o que foi salvo pelo /pix tem prioridade sobre o config.js */
+function getConfig(guildId) {
+  const config = require('../../config');
+  const saved = guildId ? require('../database').guild(guildId).pix ?? {} : {};
+  return { ...config.pix, ...Object.fromEntries(Object.entries(saved).filter(([, v]) => v)) };
+}
+
+module.exports.KEY_TYPES = KEY_TYPES;
+module.exports.normalizeKey = normalizeKey;
+module.exports.getConfig = getConfig;

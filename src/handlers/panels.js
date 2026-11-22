@@ -123,7 +123,8 @@ const HELP = {
       '`/admin adicionar` — promover membro',
       '`/admin remover` — remover da staff',
       '`/admin lista` — ver toda a equipe',
-      '`/emojis` — emojis próprios do Advanced'
+      '`/emojis` — emojis próprios do Advanced',
+      '`/pix configurar` `ver` `testar` `remover` — PIX dos tickets'
     ]
   }
 };

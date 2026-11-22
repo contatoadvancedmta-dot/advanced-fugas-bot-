@@ -202,8 +202,8 @@ function pixModal() {
 }
 
 async function createPix(interaction, t) {
-  const cfg = config.pix;
-  if (!cfg.key) return interaction.reply({ embeds: [error('A chave PIX não foi configurada em `config.js` → `pix.key`.')], flags: EPH });
+  const cfg = pix.getConfig(interaction.guild.id);
+  if (!cfg.key) return interaction.reply({ embeds: [error('A chave PIX ainda não foi configurada. Um dono pode usar `/pix configurar`.')], flags: EPH });
   const value = Number(interaction.fields.getTextInputValue('valor').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.'));
   if (!value || value <= 0 || value > 100000) return interaction.reply({ embeds: [error('Valor inválido. Ex: `25,90`')], flags: EPH });
   const product = interaction.fields.getTextInputValue('produto');
@@ -219,7 +219,7 @@ async function createPix(interaction, t) {
   db.save();
 
   const embed = base(0x32bcad)
-    .setTitle(`${e.money} Pagamento via PIX • ${config.pix.storeName}`)
+    .setTitle(`${e.money} Pagamento via PIX • ${cfg.storeName}`)
     .setDescription(`Escaneie o **QR Code** no app do seu banco ou use o **copia e cola** abaixo.\n${line}`)
     .addFields(
       { name: `${e.gift} Produto`, value: product, inline: true },
