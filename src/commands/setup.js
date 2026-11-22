@@ -19,6 +19,8 @@ const CHANNELS = {
   denuncias: 'Canal de denúncias (staff)',
   recursos: 'Canal de recursos de banimento (staff)',
   punicoes: 'Canal público de punições',
+  eventos: 'Canal de eventos de fuga',
+  clips: 'Canal de clipes (melhores fugas)',
   contador: 'Contador de jogadores (canal de voz)',
   contadormembros: 'Contador de membros (canal de voz)'
 };

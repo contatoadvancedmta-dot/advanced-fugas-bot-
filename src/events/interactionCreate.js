@@ -9,6 +9,7 @@ const whitelist = require('../handlers/whitelist');
 const giveaways = require('../handlers/giveaways');
 const moderation = require('../handlers/moderation');
 const appeals = require('../handlers/appeals');
+const fugas = require('../handlers/fugas');
 
 // prefixo do customId -> handler
 const ROUTES = {
@@ -22,7 +23,10 @@ const ROUTES = {
   gw: giveaways.handle,
   mod: moderation.handle,
   appeal: appeals.handle,
-  trate: tickets.rate
+  trate: tickets.rate,
+  ev: fugas.handleEvent,
+  x1: fugas.handleDuel,
+  clip: fugas.handleClip
 };
 // estes funcionam também na DM do bot
 const DM_ROUTES = new Set(['appeal', 'trate']);

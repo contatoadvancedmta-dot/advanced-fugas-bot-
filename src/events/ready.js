@@ -5,6 +5,7 @@ const giveaways = require('../handlers/giveaways');
 const fivem = require('../handlers/fivem');
 const moderation = require('../handlers/moderation');
 const announce = require('../handlers/announce');
+const fugas = require('../handlers/fugas');
 
 module.exports = {
   name: 'clientReady',
@@ -40,7 +41,7 @@ module.exports = {
 
     // Sorteios e status da cidade
     setInterval(() => giveaways.tick(client), 15_000);
-    setInterval(() => { moderation.tick(client); announce.tick(client); }, 30_000); // ban temporário + anúncios agendados
+    setInterval(() => { moderation.tick(client); announce.tick(client); fugas.tick(client); }, 30_000); // ban temporário + anúncios agendados
     fivem.tick(client);
     setInterval(() => fivem.tick(client), config.fivem.updateSeconds * 1000);
 

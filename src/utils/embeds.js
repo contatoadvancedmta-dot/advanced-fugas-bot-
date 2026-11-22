@@ -3,6 +3,9 @@ const config = require('../../config');
 
 const e = config.emojis;
 
+// logo 'auto' só é resolvida quando o bot conecta (ícone do servidor) — até lá fica sem imagem
+if (config.brand.logo === 'auto') config.brand.logo = null;
+
 /** Embed base com a identidade visual do Advanced */
 function base(color = config.colors.primary, force = false) {
   return new EmbedBuilder()

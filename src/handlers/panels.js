@@ -89,6 +89,17 @@ const HELP = {
       '`/ajuda` — este menu'
     ]
   },
+  fugas: {
+    label: 'Fugas', emoji: 'car', lines: [
+      '`/ip` — IP da cidade com botão de entrar',
+      '`/registrar` — registra seu nick do MTA',
+      '`/perfil` — suas estatísticas de fuga',
+      '`/desafio` — X1 de perseguição (polícia x fugitivo)',
+      '`/clip` — envie sua melhor fuga e vote nos clipes',
+      '`/ranking` — geral, polícia, fugitivo, X1 e clipes',
+      '`/evento lista` — próximos eventos • `/evento criar` *(Moderador)*'
+    ]
+  },
   staff: {
     label: 'Staff', emoji: 'shield', lines: [
       '`/mod` ou **clique direito → Apps → Ficha de moderação**',

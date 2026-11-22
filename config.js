@@ -107,6 +107,13 @@ module.exports = {
     admin: { weight: 3, label: 'Administrador', emoji: 'staff' }
   },
 
+  // Sistema de fugas (eventos, X1, ranking)
+  fugas: {
+    points: { eventWin: 3, eventPlay: 1, x1Win: 2 }, // pontos do ranking geral
+    eventPing: '@everyone',  // quem marcar ao criar evento ('' = ninguém)
+    setNickname: true        // /registrar também muda o apelido no Discord
+  },
+
   // Categorias das sugestões (aparecem no formulário)
   suggestionCategories: [
     { id: 'mapa', label: 'Mapa / Rotas de fuga', emoji: '🗺️' },
