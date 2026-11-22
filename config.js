@@ -18,7 +18,7 @@ module.exports = {
   brand: {
     name: 'Advanced Fugas',
     footer: 'Advanced Fugas • Sistema Oficial',
-    logo: 'https://cdn.discordapp.com/embed/avatars/0.png', // troque pela logo do servidor
+    logo: 'auto', // 'auto' = usa o ícone do servidor (ou a foto do bot). Ou coloque um link de imagem
     banner: null, // URL de banner reserva (usado só se faltar o arquivo em assets/banners)
     site: null,   // ex: 'https://advancedfugas.com'
     connect: 'mtasa://191.96.78.19:22575' // endereço para entrar na cidade

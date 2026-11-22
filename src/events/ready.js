@@ -12,6 +12,13 @@ module.exports = {
   async execute(client) {
     console.log(`\n🔥 ${config.brand.name} online como ${client.user.tag}\n`);
 
+    // Logo automática: ícone do servidor Advanced, ou a foto do bot
+    if (!config.brand.logo || config.brand.logo === 'auto' || config.brand.logo.includes('/embed/avatars/')) {
+      const guild = client.guilds.cache.get(process.env.GUILD_ID) ?? client.guilds.cache.first();
+      config.brand.logo = guild?.iconURL({ size: 512, extension: 'png' }) ?? client.user.displayAvatarURL({ size: 512, extension: 'png' });
+      console.log(`🖼️  Logo: ${guild?.icon ? 'ícone do servidor' : 'foto do bot'}`);
+    }
+
     // Registra os comandos sozinho ao ligar (não precisa rodar npm run deploy)
     try {
       const body = [...new Set(client.commands.values())].map((c) => c.data.toJSON());
