@@ -19,6 +19,7 @@ const CHANNELS = {
   denuncias: 'Canal de denúncias (staff)',
   recursos: 'Canal de recursos de banimento (staff)',
   punicoes: 'Canal público de punições',
+  rankings: 'Canal de rankings (atualiza sozinho)',
   eventos: 'Canal de eventos de fuga',
   clips: 'Canal de clipes (melhores fugas)',
   contador: 'Contador de jogadores (canal de voz)',
@@ -65,6 +66,11 @@ module.exports = {
       const tipo = interaction.options.getString('tipo');
       const ch = interaction.options.getChannel('canal');
       g.channels[tipo] = ch.id; db.save();
+      if (tipo === 'rankings') { // posta os rankings na hora
+        g.rankingMessages = {};
+        db.save();
+        require('../handlers/rankingBoard').update(interaction.client).catch(() => null);
+      }
       return interaction.reply({ embeds: [success(`**${CHANNELS[tipo]}** definido como ${ch}.`)], flags: EPH });
     }
     if (sub === 'cargo') {

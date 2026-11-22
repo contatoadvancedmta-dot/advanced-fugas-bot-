@@ -257,6 +257,7 @@ async function handleEvent(interaction) {
       embeds: [base().setTitle(`${e.trophy} ${TEAMS[winner].emoji} ${TEAMS[winner].label.toUpperCase()} VENCEU!`)
         .setDescription(`**${ev.title}** terminou!\n${line}\n${e.star} Vencedores ganharam **+${P().eventWin} pts** • participantes **+${P().eventPlay} pt**\n${e.arrow} Veja o ranking com \`/ranking\``)]
     });
+    require('./rankingBoard').touch(interaction.client);
     sendLog(interaction.guild, base().setDescription(`${e.trophy} Evento **#${ev.id} ${ev.title}** finalizado por ${interaction.user} — venceu ${TEAMS[winner].label} (${ev.teams[winner].length} x ${ev.teams[loser].length})`));
   }
 }
@@ -338,6 +339,7 @@ async function handleDuel(interaction) {
     addResult(gid, arg, winnerRole, true, P().x1Win);
     addResult(gid, loserId, winnerRole === 'policia' ? 'fugitivo' : 'policia', false, 0);
     db.save();
+    require('./rankingBoard').touch(interaction.client);
     await interaction.update({ content: `<@${arg}> venceu o X1! ${e.trophy} **+${P().x1Win} pts**`, embeds: [duelEmbed(d)], components: [] });
   }
 }

@@ -107,6 +107,9 @@ module.exports = {
     admin: { weight: 3, label: 'Administrador', emoji: 'staff' }
   },
 
+  // Rankings fixos no canal de rankings (/setup canal → Canal de rankings). Tire o que não quiser.
+  rankingBoard: ['tickets', 'apoiadores', 'fugas'],
+
   // Sistema de fugas (eventos, X1, ranking)
   fugas: {
     points: { eventWin: 3, eventPlay: 1, x1Win: 2 }, // pontos do ranking geral

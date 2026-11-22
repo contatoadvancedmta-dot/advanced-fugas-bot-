@@ -152,6 +152,7 @@ async function claim(interaction, t) {
   g.ticketClaims ??= [];
   g.ticketClaims.push({ staffId: interaction.user.id, number: t.number, type: t.type, ownerId: t.ownerId, at: Date.now() });
   db.save();
+  require('./rankingBoard').touch(interaction.client);
   await refreshControl(interaction.channel, t);
   await interaction.reply({ embeds: [base(config.colors.info).setDescription(`${e.claim} ${interaction.user} **assumiu este atendimento.**`)] });
   dmOwner(interaction.client, t, base(config.colors.info).setTitle(`${e.claim} Seu ticket foi assumido`)
@@ -362,6 +363,7 @@ async function close(interaction, t) {
   if (gh.ticketHistory.length > 5000) gh.ticketHistory.splice(0, gh.ticketHistory.length - 5000);
   delete gh.tickets[interaction.channel.id];
   db.save();
+  require('./rankingBoard').touch(interaction.client);
   setTimeout(() => interaction.channel.delete().catch(() => null), 5000);
 }
 
