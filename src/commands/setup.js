@@ -72,6 +72,7 @@ const ROLES = {
   verificado: 'Cargo dado ao se verificar',
   whitelist: 'Cargo de whitelist aprovada',
   staff: 'Cargo geral de staff',
+  ticket: 'Cargo extra que vê os tickets',
   ...Object.fromEntries(Object.entries(config.levels).map(([k, v]) => [k, `Cargo de ${v.label}`]))
 };
 
@@ -142,7 +143,12 @@ module.exports = {
       const tipo = interaction.options.getString('tipo');
       const role = interaction.options.getRole('cargo');
       g.roles[tipo] = role.id; db.save();
-      return interaction.reply({ embeds: [success(`**${ROLES[tipo]}** definido como ${role}.`)], flags: EPH });
+      if (![...Object.keys(config.levels), 'staff', 'ticket'].includes(tipo)) {
+        return interaction.reply({ embeds: [success(`**${ROLES[tipo]}** definido como ${role}.`)], flags: EPH });
+      }
+      await interaction.deferReply({ flags: EPH });
+      const n = await require('../handlers/tickets').syncStaffAccess(interaction.guild);
+      return interaction.editReply({ embeds: [success(`**${ROLES[tipo]}** definido como ${role}.\n${e.ticket} ${role} agora vê os tickets${n ? ` (inclusive os **${n}** que estão abertos)` : ''}.`)] });
     }
     const fmt = (map, store, mention) => Object.entries(map)
       .map(([k, label]) => `${store[k] ? e.check : e.cross} ${label}: ${store[k] ? mention(store[k]) : '`não definido`'}`).join('\n');
