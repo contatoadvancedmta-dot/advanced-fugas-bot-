@@ -33,6 +33,38 @@ const clanOf = (gid, uid) => Object.values(clans(gid)).find((c) => c.membros.inc
 const ledBy = (gid, uid) => Object.values(clans(gid)).find((c) => c.liderId === uid);
 const isStaff = (member) => perms.hasLevel(member, 'suporte');
 
+/* ───────────── Cores ───────────── */
+const COLORS = [
+  ['vermelho', 'Vermelho', '#e53935', '🔴'], ['vinho', 'Vinho', '#8e1c2e', '🍷'], ['laranja', 'Laranja', '#f97316', '🟠'],
+  ['amarelo', 'Amarelo', '#facc15', '🟡'], ['dourado', 'Dourado', '#d4a017', '🏆'], ['verde', 'Verde', '#22c55e', '🟢'],
+  ['limao', 'Verde-limão', '#a3e635', '🍏'], ['ciano', 'Ciano', '#22d3ee', '🩵'], ['azul', 'Azul', '#3b82f6', '🔵'],
+  ['marinho', 'Azul-marinho', '#1e3a8a', '🌊'], ['roxo', 'Roxo', '#8b5cf6', '🟣'], ['rosa', 'Rosa', '#f472b6', '🌸'],
+  ['marrom', 'Marrom', '#92400e', '🟤'], ['branco', 'Branco', '#f5f5f5', '⚪'], ['cinza', 'Cinza', '#9ca3af', '🩶'], ['preto', 'Preto', '#1f1f1f', '⚫']
+];
+const hexToInt = (h) => parseInt(String(h).replace('#', ''), 16);
+const colorName = (hex) => COLORS.find((c) => c[2] === hex)?.[1] ?? hex;
+const colorOptions = (current, extra = []) => [
+  ...extra,
+  ...COLORS.map(([value, label, hex, emoji]) => ({ label, value: hex, emoji, description: hex, default: hex === current })),
+  { label: 'Outra cor (digitar o código)', value: 'custom', emoji: '🎨', description: 'Ex: #ff6600' }
+].slice(0, 25);
+
+/** Muda a cor do clã (cargo + embeds). Retorna { text } ou { error } */
+async function setColor(guild, c, hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return { error: 'Cor inválida. Use o formato **#RRGGBB**, ex: `#ff6600`.' };
+  c.color = hex.toLowerCase();
+  db.save();
+  const role = c.roleId && (guild.roles.cache.get(c.roleId) ?? (await guild.roles.fetch(c.roleId).catch(() => null)));
+  if (!role) return { text: `Cor do clã salva: **${colorName(c.color)}**. (O clã não tem cargo para pintar.)` };
+  const ok = await role.setColors({ primaryColor: hexToInt(c.color) }, 'Cor do clã').then(() => true).catch(() => false);
+  return ok ? { text: `Cor do clã **[${c.sigla}]** agora é **${colorName(c.color)}** (\`${c.color}\`).` }
+    : { error: 'Não consegui mudar a cor do cargo — o cargo do bot precisa ficar **acima** do cargo do clã.' };
+}
+
+const colorModal = (id, by = 'cla') => new ModalBuilder().setCustomId(`${by}:colorm:${id}`).setTitle('Cor do clã').addLabelComponents(
+  new LabelBuilder().setLabel('Código da cor').setDescription('Formato #RRGGBB — pegue em google.com/search?q=color+picker')
+    .setTextInputComponent(new TextInputBuilder().setCustomId('hex').setStyle(TextInputStyle.Short).setRequired(true).setMinLength(6).setMaxLength(7).setPlaceholder('#ff6600')));
+
 /* ───────────── Registro / membros ───────────── */
 
 /** Procura um cargo que já seja do clã (pelo nome, sigla ou "[SIGLA] Nome") */
@@ -41,7 +73,7 @@ function findRole(guild, nome, sigla) {
   return guild.roles.cache.find((r) => wanted.includes(norm(r.name)));
 }
 
-async function create(guild, by, { nome, sigla, liderId, createChannel = false }) {
+async function create(guild, by, { nome, sigla, liderId, createChannel = false, color = null }) {
   const g = store(guild.id);
   nome = String(nome ?? '').trim();
   sigla = String(sigla ?? '').trim().toUpperCase();
@@ -68,9 +100,10 @@ async function create(guild, by, { nome, sigla, liderId, createChannel = false }
       reason: `Canal do clã ${nome}`
     }).catch(() => null);
   }
-  const c = { id, nome, sigla, liderId, membros: [liderId], roleId: role?.id ?? null, roleCreated, channelId: channel?.id ?? null, wins: 0, losses: 0, createdAt: Date.now(), by: by.id };
+  const c = { id, nome, sigla, liderId, membros: [liderId], roleId: role?.id ?? null, roleCreated, channelId: channel?.id ?? null, color: null, wins: 0, losses: 0, createdAt: Date.now(), by: by.id };
   g.clas[id] = c;
   db.save();
+  if (color && /^#[0-9a-f]{6}$/i.test(color)) await setColor(guild, c, color);
 
   const member = await guild.members.fetch(liderId).catch(() => null);
   if (c.roleId) await member?.roles.add(c.roleId, `Líder do clã ${nome}`).catch(() => null);
@@ -138,12 +171,13 @@ async function remove(guild, c) {
 
 function infoEmbed(c) {
   const games = c.wins + c.losses;
-  return base().setTitle(`🏴 [${c.sigla}] ${c.nome}`)
+  return base(c.color ? hexToInt(c.color) : undefined, !!c.color).setTitle(`🏴 [${c.sigla}] ${c.nome}`)
     .setDescription(`${c.roleId ? `Tag: <@&${c.roleId}>` : 'Sem cargo'}${c.channelId ? ` • <#${c.channelId}>` : ''}\n${line}`)
     .addFields(
       { name: `${e.crown} Líder`, value: `<@${c.liderId}>`, inline: true },
       { name: `${e.user} Membros`, value: `**${c.membros.length}**${cfg().maxMembers ? `/${cfg().maxMembers}` : ''}`, inline: true },
       { name: `${e.trophy} X-Clã`, value: `**${c.wins}V / ${c.losses}D**${games ? ` • ${Math.round((c.wins / games) * 100)}%` : ''}`, inline: true },
+      { name: '🎨 Cor', value: c.color ? `${colorName(c.color)} \`${c.color}\`` : 'padrão', inline: true },
       { name: 'Integrantes', value: c.membros.slice(0, 40).map((id) => `${id === c.liderId ? e.crown : e.dot} <@${id}>`).join('\n').slice(0, 1024) || '—' }
     );
 }
@@ -187,6 +221,7 @@ function manageView(c, note) {
   return { embeds, components: [
     row(new UserSelectMenuBuilder().setCustomId(`cla:add:${c.id}`).setPlaceholder('➕ Dar a tag do clã (até 10)').setMaxValues(10)),
     row(new UserSelectMenuBuilder().setCustomId(`cla:rem:${c.id}`).setPlaceholder('➖ Tirar a tag do clã (até 10)').setMaxValues(10)),
+    row(new StringSelectMenuBuilder().setCustomId(`cla:color:${c.id}`).setPlaceholder('🎨 Escolher a cor do clã').addOptions(colorOptions(c.color))),
     row(btn('cla:x', 'Marcar X-Clã', '⚔️', ButtonStyle.Danger))
   ] };
 }
@@ -200,7 +235,10 @@ function registerModal(ownerId) {
     new LabelBuilder().setLabel('Sigla').setTextInputComponent(new TextInputBuilder().setCustomId('sigla').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(8).setPlaceholder('Ex: ZN')),
     new LabelBuilder().setLabel('Líder').setUserSelectMenuComponent(new UserSelectMenuBuilder().setCustomId('lider').setRequired(true).setMaxValues(1).setDefaultUsers(ownerId)),
     new LabelBuilder().setLabel('Criar canal do clã?').setStringSelectMenuComponent(new StringSelectMenuBuilder().setCustomId('canal').setRequired(true)
-      .addOptions({ label: 'Não', value: 'nao', default: true }, { label: 'Sim, criar na categoria de clãs', value: 'sim' }))
+      .addOptions({ label: 'Não', value: 'nao', default: true }, { label: 'Sim, criar na categoria de clãs', value: 'sim' })),
+    new LabelBuilder().setLabel('Cor do clã').setDescription('A cor do cargo (o nome dos membros fica dessa cor)')
+      .setStringSelectMenuComponent(new StringSelectMenuBuilder().setCustomId('cor').setRequired(true)
+        .addOptions(colorOptions(null, [{ label: 'Manter a cor atual do cargo', value: 'manter', emoji: '🎨', default: true }]).filter((o) => o.value !== 'custom')))
   );
 }
 
@@ -322,6 +360,15 @@ async function handle(i) { // "cla:..."
     }
     return i.update(manageView(c, out.join('\n')));
   }
+  if (action === 'color' || action === 'colorm') {
+    const c = clans(guild.id)[a];
+    if (!c) return i.reply({ embeds: [error('Esse clã não existe mais.')], flags: EPH });
+    if (c.liderId !== i.user.id && !(await perms.check(i, 'suporte'))) return;
+    if (action === 'color' && i.values[0] === 'custom') return i.showModal(colorModal(c.id));
+    const hex = action === 'color' ? i.values[0] : `#${i.fields.getTextInputValue('hex').trim().replace('#', '')}`;
+    const r = await setColor(guild, c, hex);
+    return i.update(manageView(c, r.error ? `${e.cross} ${r.error}` : `${e.check} ${r.text}`));
+  }
   // registro pelo ticket (staff)
   if (action === 'reg') {
     if (!(await perms.check(i, 'suporte'))) return;
@@ -334,7 +381,8 @@ async function handle(i) { // "cla:..."
     const lider = i.fields.getSelectedUsers('lider')?.first();
     const r = await create(guild, i.user, {
       nome: i.fields.getTextInputValue('nome'), sigla: i.fields.getTextInputValue('sigla'), liderId: lider?.id,
-      createChannel: i.fields.getStringSelectValues('canal')?.[0] === 'sim'
+      createChannel: i.fields.getStringSelectValues('canal')?.[0] === 'sim',
+      color: (i.fields.getStringSelectValues('cor')?.[0] ?? 'manter') === 'manter' ? null : i.fields.getStringSelectValues('cor')[0]
     });
     if (r.error) return i.editReply({ embeds: [error(r.error)] });
     const g = store(guild.id);
@@ -343,6 +391,7 @@ async function handle(i) { // "cla:..."
       r.roleCreated ? `${e.check} Cargo <@&${r.c.roleId}> **criado** e entregue ao líder <@${r.c.liderId}>.` : r.c.roleId ? `${e.check} Cargo existente <@&${r.c.roleId}> entregue ao líder <@${r.c.liderId}>.` : `${e.warn} Não consegui criar o cargo (o cargo do bot precisa estar acima).`,
       g.roles.lider_cla ? `${e.crown} Cargo de Líder de clã <@&${g.roles.lider_cla}> entregue.` : `${e.warn} Configure o cargo de **Líder de clã** (Central → Cargos) para ele acessar o chat dos líderes.`,
       r.channel ? `${e.check} Canal criado: ${r.channel}` : null,
+      r.c.color ? `🎨 Cor: **${colorName(r.c.color)}**` : null,
       `${e.arrow} O líder já pode dar a tag aos membros pelo **Painel do Líder**.`
     ].filter(Boolean).join('\n'), 'Clã registrado'), infoEmbed(r.c)] });
   }
@@ -416,6 +465,6 @@ async function handleXc(i) { // "xc:..."
 }
 
 module.exports = {
-  store, clans, find, clanOf, ledBy, create, setMember, setLeader, remove,
+  store, clans, find, clanOf, ledBy, create, setMember, setLeader, remove, setColor, colorOptions, colorModal, colorName, COLORS,
   infoEmbed, listEmbed, rankingEmbed, leaderPanel, manageView, registerModal, tick, handle, handleXc, parseDate
 };

@@ -155,6 +155,7 @@ function facManage(guild, c, note) {
     row(new UserSelectMenuBuilder().setCustomId(`cp:facadd:${c.id}`).setPlaceholder('➕ Dar a tag do clã').setMaxValues(10)),
     row(new UserSelectMenuBuilder().setCustomId(`cp:facrem:${c.id}`).setPlaceholder('➖ Tirar a tag do clã').setMaxValues(10)),
     row(new UserSelectMenuBuilder().setCustomId(`cp:faclead:${c.id}`).setPlaceholder('👑 Trocar o líder').setMaxValues(1)),
+    row(new StringSelectMenuBuilder().setCustomId(`cp:faccolor:${c.id}`).setPlaceholder('🎨 Cor do clã').addOptions(clas.colorOptions(c.color))),
     row(back('cp:fac'), btn(`cp:facdel:${c.id}`, 'Excluir clã', '🗑️', ButtonStyle.Danger))
   ] };
 }
@@ -267,9 +268,21 @@ async function handle(i) {
       const clas = require('./clas');
       await i.deferUpdate();
       const lider = i.fields.getSelectedUsers('lider')?.first();
-      const r = await clas.create(guild, i.user, { nome: i.fields.getTextInputValue('nome'), sigla: i.fields.getTextInputValue('sigla'), liderId: lider?.id, createChannel: i.fields.getStringSelectValues('canal')?.[0] === 'sim' });
+      const cor = i.fields.getStringSelectValues('cor')?.[0];
+      const r = await clas.create(guild, i.user, { nome: i.fields.getTextInputValue('nome'), sigla: i.fields.getTextInputValue('sigla'), liderId: lider?.id, createChannel: i.fields.getStringSelectValues('canal')?.[0] === 'sim', color: cor && cor !== 'manter' ? cor : null });
       if (r.error) return i.editReply(facManage(guild, null)).then(() => i.followUp({ embeds: [error(r.error)], flags: EPH }));
       return i.editReply(facManage(guild, r.c, `${e.check} Clã registrado! ${r.roleCreated ? `Cargo <@&${r.c.roleId}> **criado**` : r.c.roleId ? `Cargo existente <@&${r.c.roleId}> usado` : 'Sem cargo'} e entregue ao líder.`));
+    }
+    case 'faccolor':
+    case 'faccolorm': {
+      const clas = require('./clas');
+      const c = clas.clans(guild.id)[a];
+      if (!c) return i.update(facPage(guild));
+      if (action === 'faccolor' && i.values[0] === 'custom') return i.showModal(clas.colorModal(c.id, 'cp').setCustomId(`cp:faccolorm:${c.id}`));
+      const hex = action === 'faccolor' ? i.values[0] : `#${i.fields.getTextInputValue('hex').trim().replace('#', '')}`;
+      await i.deferUpdate();
+      const r = await clas.setColor(guild, c, hex);
+      return i.editReply(facManage(guild, c, r.error ? `${e.cross} ${r.error}` : `${e.check} ${r.text}`));
     }
     case 'facpick': return i.update(facManage(guild, require('./clas').clans(guild.id)[i.values[0]]));
     case 'facadd':
