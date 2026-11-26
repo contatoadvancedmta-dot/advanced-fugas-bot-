@@ -148,6 +148,12 @@ module.exports = {
     { id: 'cla', label: 'Clãs', description: 'Registrar clã, tag e assuntos de clã', emoji: 'shield' }
   ],
 
+  // Campeonato X1
+  camp: {
+    title: 'CAMPEONATO X1',
+    roundTime: '2 minutos'
+  },
+
   // Clãs (gerenciador de tag dos líderes + X-Clã)
   clas: {
     maxMembers: 0,          // limite de membros por clã (0 = sem limite)

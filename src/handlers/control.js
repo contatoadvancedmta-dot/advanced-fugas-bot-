@@ -45,7 +45,7 @@ function home(guild) {
     components: [
       row(btn('cp:ch', 'Canais', '📁', ButtonStyle.Primary), btn('cp:role', 'Cargos', '👥', ButtonStyle.Primary), btn('cp:panel', 'Enviar painéis', '🧩', ButtonStyle.Primary), btn('cp:city', 'Cidade', '🏙️', ButtonStyle.Primary)),
       row(btn('cp:pix', 'PIX', '💸'), btn('cp:fac', 'Clãs', '🏴'), btn('cp:ann', 'Anúncio', '📢'), btn('cp:team', 'Equipe', '👑')),
-      row(btn('cp:view', 'Ver tudo que está configurado', '📋'))
+      row(btn('camp:panel', 'Campeonato X1', '🏆', ButtonStyle.Success), btn('cp:view', 'Ver tudo que está configurado', '📋'))
     ]
   };
 }

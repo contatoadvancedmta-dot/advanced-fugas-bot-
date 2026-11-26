@@ -30,6 +30,16 @@ const SECTIONS = {
       clas_lista: 'Lista de clãs (atualiza sozinha)'
     }
   },
+  camp: {
+    title: '🏆 Campeonato X1',
+    items: {
+      camp_anuncios: 'Anúncios do campeonato',
+      camp_regras: 'Regras do campeonato',
+      camp_inscricao: 'Inscrição (painel com botão)',
+      camp_chaves: 'Chaveamento / resultados (padrão: anúncios)',
+      camp_chat: 'Chat dos participantes'
+    }
+  },
   staff: {
     title: '🛠️ Canais da staff (trancados)',
     items: {
@@ -66,6 +76,7 @@ const TYPES_FOR = {
   staff: [ChannelType.GuildText],
   ranking: [ChannelType.GuildText, ChannelType.GuildAnnouncement],
   clas: [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildCategory],
+  camp: [ChannelType.GuildText, ChannelType.GuildAnnouncement],
   cidade: [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice]
 };
 
@@ -85,7 +96,8 @@ const ROLES = {
   staff: 'Cargo geral de staff',
   ticket: 'Cargo extra que vê os tickets',
   ...Object.fromEntries(Object.entries(config.levels).map(([k, v]) => [k, `Cargo de ${v.label}`])),
-  lider_cla: 'Cargo de Líder de clã (acesso ao chat dos líderes)'
+  lider_cla: 'Cargo de Líder de clã (acesso ao chat dos líderes)',
+  camp_participante: 'Cargo de participante do campeonato'
 };
 
 function channelSub(s, name, description) {
@@ -104,6 +116,7 @@ module.exports = {
       .addBooleanOption((o) => o.setName('trancar').setDescription('Trancar o canal para só a staff ver (padrão: sim)')))
     .addSubcommand((s) => channelSub(s, 'ranking', 'Define o canal de cada ranking'))
     .addSubcommand((s) => channelSub(s, 'clas', 'Canais dos clãs (X-Clã, chat dos líderes, lista)'))
+    .addSubcommand((s) => channelSub(s, 'camp', 'Canais do Campeonato X1'))
     .addSubcommand((s) => channelSub(s, 'cidade', 'Status da cidade e contadores'))
     .addSubcommand((s) => s.setName('cargo').setDescription('Define um cargo')
       .addStringOption((o) => o.setName('tipo').setDescription('Tipo').setRequired(true)
@@ -149,7 +162,7 @@ function configEmbed(guild) {
     const fmt = (map, store, mention) => Object.entries(map)
       .map(([k, label]) => `${store[k] ? e.check : e.cross} ${label}: ${store[k] ? mention(store[k]) : '`não definido`'}`).join('\n');
     const embed = base().setTitle(`⚙️ Configuração — ${config.brand.name}`)
-      .setDescription(`Use \`/setup canal\`, \`/setup staff\`, \`/setup ranking\`, \`/setup clas\`, \`/setup cidade\` e \`/setup cargo\`.`)
+      .setDescription(`Use \`/setup canal\`, \`/setup staff\`, \`/setup ranking\`, \`/setup clas\`, \`/setup camp\`, \`/setup cidade\` e \`/setup cargo\`.`)
       .addFields(
         ...Object.entries(SECTIONS).map(([k, sec]) => ({ name: `${sec.title} — /setup ${k}`, value: fmt(sec.items, g.channels, (id) => `<#${id}>`).slice(0, 1024) })),
         { name: '👥 Cargos — /setup cargo', value: fmt(ROLES, g.roles, (id) => `<@&${id}>`).slice(0, 1024) }

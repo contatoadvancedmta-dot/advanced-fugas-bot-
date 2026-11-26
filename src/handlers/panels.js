@@ -98,7 +98,8 @@ const HELP = {
       '`/clip` — envie sua melhor fuga e vote nos clipes',
       '`/ranking` — geral, polícia, fugitivo, X1 e clipes',
       '`/evento lista` — próximos eventos • `/evento criar` *(Moderador)*',
-      '**Clãs:** painel do líder (dar tag, marcar X-Clã) • registro pelo ticket de Clãs'
+      '**Clãs:** painel do líder (dar tag, marcar X-Clã) • registro pelo ticket de Clãs',
+      '**Campeonato X1:** inscrição pelo botão em #inscrição-camp • `/campeonato` *(Moderador)*'
     ]
   },
   staff: {

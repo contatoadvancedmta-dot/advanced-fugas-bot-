@@ -32,7 +32,8 @@ const ROUTES = {
   pixcfg: pixCommand.handleModal,
   cp: require('../handlers/control').handle,
   cla: require('../handlers/clas').handle,
-  xc: require('../handlers/clas').handleXc
+  xc: require('../handlers/clas').handleXc,
+  camp: require('../handlers/camp').handle
 };
 // estes funcionam também na DM do bot
 const DM_ROUTES = new Set(['appeal', 'trate']);

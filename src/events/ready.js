@@ -43,7 +43,7 @@ module.exports = {
 
     // Sorteios e status da cidade
     setInterval(() => giveaways.tick(client), 15_000);
-    setInterval(() => { moderation.tick(client); announce.tick(client); fugas.tick(client); require('../handlers/clas').tick(client).catch(() => null); }, 30_000);
+    setInterval(() => { moderation.tick(client); announce.tick(client); fugas.tick(client); require('../handlers/clas').tick(client).catch(() => null); require('../handlers/camp').tick(client).catch(() => null); }, 30_000);
     setTimeout(() => rankingBoard.update(client).catch(() => null), 15_000);
     setInterval(() => rankingBoard.update(client).catch(() => null), 10 * 60_000); // canal de rankings // ban temporário + anúncios agendados
     fivem.tick(client);
