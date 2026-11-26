@@ -151,7 +151,21 @@ module.exports = {
   // Campeonato X1
   camp: {
     title: 'CAMPEONATO X1',
-    roundTime: '2 minutos'
+    roundTime: '2 minutos',
+    // Campeonato que o bot já cria pronto (a staff só edita o link do YouTube)
+    padrao: {
+      data: '03/12/2026 20:00',       // dia e hora do campeonato
+      abertura: '26/11/2026',         // inscrições abertas desde
+      prazo: '02/12/2026 23:59',      // inscrições até
+      vagas: '16-32',
+      youtube: '',                    // link da transmissão (edite pelo botão no /campeonato)
+      premio: [
+        '🥇 **1º lugar:** R$ 40,00 + ID + VIP + Tag personalizada',
+        '🥈 **2º lugar:** VIP + Passe + ID',
+        '🥉 **3º lugar:** VIP + Passe pago',
+        '🏷️ **Todos os participantes** recebem uma tag exclusiva do campeonato!'
+      ].join('\n')
+    }
   },
 
   // Clãs (gerenciador de tag dos líderes + X-Clã)

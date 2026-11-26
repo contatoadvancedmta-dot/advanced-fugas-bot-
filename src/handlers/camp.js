@@ -47,47 +47,69 @@ const fmtDate = (t) => (t ? `${ts(t, 'D')} às ${ts(t, 't')}` : '`a definir`');
 
 /* ───────────── Mensagens públicas ───────────── */
 
+const fmtDay = (t) => {
+  if (!t) return '[dd/mm]';
+  const d = new Date(t + (config.timezoneOffset ?? -3) * 36e5);
+  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+const fmtHour = (t) => {
+  if (!t) return '[hh:mm]';
+  const d = new Date(t + (config.timezoneOffset ?? -3) * 36e5);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+};
+
+const RULES_LINES = () => [
+  `⏱️ **Duração da rodada:** ${config.camp?.roundTime ?? '2 minutos'} (fuga e perseguição)`,
+  '📊 **Diferença necessária:** vence quem abrir **2 pontos** de vantagem',
+  '🔄 **Empate:** o placar zera',
+  '⏳ **Após 2 empates:** o tempo cai para **1m30**, e depois para **1m**',
+  '🌳 **Vegetação:** ATIVADA',
+  '🎲 **Quem começa fugindo ou perseguindo** também é sorteado'
+];
+const ANTIHACK_LINES = [
+  'Antes de cada X1, os jogadores vão **relogar o MTA com a tela compartilhada** e fazer o **reset de verificação** pedido pela organização.',
+  'Quem se recusar ou for pego com qualquer irregularidade é **desclassificado na hora**. ❌'
+];
+
 function announceMessage(c) {
   const embed = base()
     .setTitle(`🏆 ${c.title} — ${config.brand.name.toUpperCase()} 🏆`)
     .setDescription([
       'Chegou a hora de provar quem é o melhor na **fuga** e na **perseguição**! O Campeonato de X1 da Advanced Fugas está com as **inscrições abertas**! 🔥',
-      line,
+      '',
       '📋 **COMO FUNCIONA**',
-      `👤 **Modo:** Solo (1v1)`,
+      '👤 **Modo:** Solo (1v1)',
       `👥 **Vagas:** de ${c.min} a ${c.max} jogadores`,
       '🎲 **Chaveamento:** sorteado ao vivo a cada fase',
       '🏁 **Fases:** Oitavas ➜ Quartas ➜ Semifinal ➜ FINAL',
-      c.youtube ? `📺 **Transmissão ao vivo no YouTube:** ${c.youtube}` : null,
-      line,
+      `📺 **Transmissão ao vivo no YouTube:** ${c.youtube || '*em breve*'}`,
+      '',
+      '⚔️ **REGRAS DO X1**',
+      ...RULES_LINES(),
+      '',
+      '🛡️ **ANTI-HACK**',
+      ...ANTIHACK_LINES,
+      '',
+      '🎁 **PREMIAÇÃO**',
+      c.premio || '*a definir*',
+      '',
       '📝 **INSCRIÇÕES**',
-      `📅 **Data do campeonato:** ${fmtDate(c.date)}`,
-      `🗓️ **Inscrições até:** ${fmtDate(c.deadline)}`,
-      `✍️ **Como se inscrever:** ${c.inscricaoChannelId ? `clique em **Inscrever-me** em <#${c.inscricaoChannelId}>` : 'botão **Inscrever-me** no canal de inscrição'}`,
-      `🎁 **Premiação:**\n${c.premio || '`a definir`'}`,
-      line,
+      `🗓️ **Inscrições abertas:** de ${fmtDay(c.opensAt ?? c.createdAt)} até ${fmtDay(c.deadline)}`,
+      `📅 **Dia do campeonato:** ${fmtDay(c.date)} às ${fmtHour(c.date)}`,
+      `✍️ **Como se inscrever:** ${c.inscricaoChannelId ? `clique em **Inscrever-me** em <#${c.inscricaoChannelId}>` : 'clique em **Inscrever-me** no canal de inscrição'} (a staff confere seu nick e ID)`,
+      '',
       '⚠️ O número de participantes precisa ser **par**. Se faltar alguém, a organização ajusta as chaves.',
       '',
       'Inscreva-se, chama os parças e bora ver quem é o **rei do X1**! 🚓💨'
-    ].filter((l) => l !== null).join('\n'));
-  return withBanner({ content: '@everyone', embeds: [embed], allowedMentions: { parse: ['everyone'] } }, embed, 'campeonato');
+    ].join('\n'));
+  const components = c.youtube ? [row(new ButtonBuilder().setLabel('Assistir no YouTube').setEmoji('📺').setStyle(ButtonStyle.Link).setURL(c.youtube))] : [];
+  return withBanner({ content: '@everyone', embeds: [embed], components, allowedMentions: { parse: ['everyone'] } }, embed, 'campeonato');
 }
 
 function rulesMessage(c) {
   const embed = base()
     .setTitle(`⚔️ Regras do X1 — ${c?.title ?? 'Campeonato X1'}`)
-    .setDescription([
-      `⏱️ **Duração da rodada:** ${config.camp?.roundTime ?? '2 minutos'} (fuga e perseguição)`,
-      '📊 **Diferença necessária:** vence quem abrir **2 pontos** de vantagem',
-      '🔄 **Empate:** o placar zera',
-      '⏳ **Após 2 empates:** o tempo cai para **1m30**, e depois para **1m**',
-      '🌳 **Vegetação:** ATIVADA',
-      '🎲 **Quem começa fugindo ou perseguindo** também é sorteado',
-      line,
-      '🛡️ **ANTI-HACK**',
-      'Antes de cada X1, os jogadores vão **relogar o MTA com a tela compartilhada** e fazer o **reset de verificação** pedido pela organização.',
-      'Quem se recusar ou for pego com qualquer irregularidade é **desclassificado na hora**. ❌'
-    ].join('\n'));
+    .setDescription([...RULES_LINES(), line, '🛡️ **ANTI-HACK**', ...ANTIHACK_LINES].join('\n'));
   return withBanner({ embeds: [embed] }, embed, 'campeonato');
 }
 
@@ -172,20 +194,46 @@ function bracketComponents(c, r) {
 }
 const nickOf = (c, uid) => c.inscritos.find((p) => p.userId === uid)?.nick ?? uid;
 
+/* ───────────── Campeonato padrão (do config) ───────────── */
+
+function fromDefaults(by) {
+  const p = config.camp?.padrao;
+  if (!p) return null;
+  const [min, max] = String(p.vagas ?? '16-32').split(/[-a\s]+/).map((n) => parseInt(n, 10));
+  const date = parseWhen(p.data), deadline = parseWhen(p.prazo);
+  if (!date || !deadline) return null;
+  return {
+    title: config.camp?.title ?? 'CAMPEONATO X1', status: Date.now() < deadline ? 'inscricoes' : 'fechado', inscritos: [], rounds: [],
+    createdAt: Date.now(), opensAt: parseWhen(p.abertura) ?? Date.now(), by: by ?? null,
+    date, deadline, min: min || 16, max: max || 32, premio: p.premio ?? '', youtube: p.youtube || null
+  };
+}
+
+/** Garante que existe um campeonato (cria o padrão do config se não tiver) */
+function ensure(guildId) {
+  const g = camp(guildId);
+  if (!g.camp && !g.campDisabled) {
+    g.camp = fromDefaults();
+    if (g.camp) db.save();
+  }
+  return g.camp;
+}
+
 /* ───────────── Painel da staff ───────────── */
 
 function staffPanel(guild) {
-  const c = get(guild.id);
+  const c = ensure(guild.id);
   const g = camp(guild.id);
   const embed = base().setTitle('🏆 Gerenciar campeonato X1');
   if (!c) {
-    embed.setDescription('Nenhum campeonato criado. Clique em **Criar campeonato** e preencha data, prazo das inscrições, vagas, prêmio e link do YouTube.');
-    return { content: null, embeds: [embed], files: [], attachments: [], components: [row(btn('camp:edit', 'Criar campeonato', '➕', ButtonStyle.Success))] };
+    embed.setDescription('Nenhum campeonato ativo. Clique em **Criar campeonato** — ele já vem preenchido com o padrão (datas, vagas e premiação).');
+    return { content: null, embeds: [embed], files: [], attachments: [], components: [row(btn('camp:new', 'Criar campeonato', '➕', ButtonStyle.Success))] };
   }
   const r = c.rounds.at(-1);
   embed.setDescription([
     `**${c.title}**`,
-    `📅 ${fmtDate(c.date)} • 🗓️ inscrições até ${fmtDate(c.deadline)}`,
+    `📅 ${fmtDate(c.date)} • 🗓️ inscrições de ${fmtDay(c.opensAt ?? c.createdAt)} até ${fmtDate(c.deadline)}`,
+    `📺 YouTube: ${c.youtube ? c.youtube : '`falta colocar o link`'}`,
     `👥 **${approved(c).length}/${c.max}** aprovados (mínimo ${c.min})${pendingList(c).length ? ` • ${e.pending} **${pendingList(c).length} aguardando análise**` : ''}`,
     `📌 **Status:** ${{ inscricoes: '✍️ inscrições abertas', fechado: '🔒 inscrições fechadas', andamento: `⚔️ em andamento — ${r?.name ?? ''}`, finalizado: '👑 finalizado' }[c.status]}`,
     line,
@@ -196,7 +244,8 @@ function staffPanel(guild) {
     `🎫 Cargo de participante: ${g.roles.camp_participante ? `<@&${g.roles.camp_participante}>` : '`não configurado`'}`
   ].join('\n'));
   return { content: null, embeds: [embed], files: [], attachments: [], components: [
-    row(btn('camp:edit', 'Editar dados', '✏️'), btn('camp:pubann', 'Publicar anúncio', '📢', ButtonStyle.Primary), btn('camp:pubrules', 'Publicar regras', '📜', ButtonStyle.Primary), btn('camp:pubsignup', 'Publicar inscrição', '✍️', ButtonStyle.Primary)),
+    row(btn('camp:yt', c.youtube ? 'Editar link do YouTube' : 'Colocar link do YouTube', '📺', ButtonStyle.Success), btn('camp:edit', 'Editar dados', '✏️')),
+    row(btn('camp:pubann', 'Publicar anúncio', '📢', ButtonStyle.Primary), btn('camp:pubrules', 'Publicar regras', '📜', ButtonStyle.Primary), btn('camp:pubsignup', 'Publicar inscrição', '✍️', ButtonStyle.Primary)),
     row(
       c.status === 'inscricoes' ? btn('camp:close', 'Fechar inscrições', '🔒') : btn('camp:open', 'Reabrir inscrições', '🔓', ButtonStyle.Secondary, c.status !== 'fechado'),
       btn('camp:draw', c.rounds.length ? 'Ver chaveamento' : 'Sortear chaves', '🎲', ButtonStyle.Success, approved(c).length < 2),
@@ -216,7 +265,7 @@ function editModal(c) {
     t('data', 'Data e hora do campeonato', fmt(c?.date), '28/12 20:00'),
     t('prazo', 'Inscrições até (data e hora)', fmt(c?.deadline), '27/12 23:59'),
     t('vagas', 'Vagas (mínimo-máximo)', c ? `${c.min}-${c.max}` : '16-32', '16-32', TextInputStyle.Short, true, 7),
-    t('premio', 'Premiação (1º, 2º, 3º)', c?.premio, '🥇 1º: ...\n🥈 2º: ...\n🥉 3º: ...', TextInputStyle.Paragraph, false, 600),
+    t('premio', 'Premiação (1º, 2º, 3º)', c?.premio, '🥇 1º: ...\n🥈 2º: ...\n🥉 3º: ...', TextInputStyle.Paragraph, false, 1000),
     t('youtube', 'Link da transmissão no YouTube (opcional)', c?.youtube, 'https://youtube.com/@...', TextInputStyle.Short, false, 200)
   );
 }
@@ -241,7 +290,7 @@ async function handle(i) {
   const [, action, a, b] = i.customId.split(':');
   const guild = i.guild;
   const g = camp(guild.id);
-  const c = g.camp;
+  const c = ensure(guild.id);
 
   /* jogadores */
   if (action === 'join') {
@@ -335,6 +384,26 @@ async function handle(i) {
 
   switch (action) {
     case 'panel': return respond(staffPanel(guild));
+    case 'new':
+      g.campDisabled = false;
+      g.camp = fromDefaults(i.user.id);
+      db.save();
+      return respond(staffPanel(guild));
+    case 'yt': return i.showModal(new ModalBuilder().setCustomId('camp:ytm').setTitle('Link da transmissão').addLabelComponents(
+      new LabelBuilder().setLabel('Link do canal ou da live no YouTube').setTextInputComponent(new TextInputBuilder().setCustomId('url').setStyle(TextInputStyle.Short)
+        .setRequired(false).setMaxLength(200).setPlaceholder('https://youtube.com/@advancedfugas').setValue(c?.youtube ?? ''))));
+    case 'ytm': {
+      const url = i.fields.getTextInputValue('url').trim();
+      if (url && !/^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(url)) return i.reply({ embeds: [error('Coloque um link do YouTube (https://youtube.com/... ou https://youtu.be/...).')], flags: EPH });
+      c.youtube = url || null;
+      db.save();
+      // atualiza o anúncio já publicado
+      if (c.announceMsg) {
+        const msg = await guild.channels.cache.get(c.announceMsg.channelId)?.messages.fetch(c.announceMsg.messageId).catch(() => null);
+        if (msg) { const p = announceMessage(c); delete p.content; if (msg.attachments.size) delete p.files; await msg.edit(p).catch(() => null); }
+      }
+      return respond(staffPanel(guild));
+    }
     case 'edit': return i.showModal(editModal(c));
     case 'save': {
       const date = parseWhen(i.fields.getTextInputValue('data'));
@@ -345,7 +414,7 @@ async function handle(i) {
       if (!min || !max || min > max || max > 64) return i.reply({ embeds: [error('Vagas inválidas. Use por exemplo `16-32`.')], flags: EPH });
       const yt = i.fields.getTextInputValue('youtube').trim();
       if (yt && !/^https?:\/\//.test(yt)) return i.reply({ embeds: [error('O link do YouTube precisa começar com https://')], flags: EPH });
-      g.camp = { ...(c ?? { title: config.camp?.title ?? 'CAMPEONATO X1', status: 'inscricoes', inscritos: [], rounds: [], createdAt: Date.now(), by: i.user.id }),
+      g.camp = { ...(c ?? fromDefaults(i.user.id) ?? { title: config.camp?.title ?? 'CAMPEONATO X1', status: 'inscricoes', inscritos: [], rounds: [], createdAt: Date.now(), by: i.user.id }),
         date, deadline, min, max, premio: i.fields.getTextInputValue('premio').trim(), youtube: yt || null };
       db.save();
       await refreshSignup(guild);
@@ -442,6 +511,7 @@ async function handle(i) {
       g.campHistory ??= [];
       if (c) g.campHistory.push({ title: c.title, date: c.date, podium: c.podium ?? null, players: c.inscritos.length });
       g.camp = null;
+      g.campDisabled = true; // só cria outro quando clicarem em "Criar campeonato"
       db.save();
       return i.editReply(staffPanel(guild));
     }
@@ -507,10 +577,12 @@ async function postBracket(guild, c, r, fallback) {
 
 async function publish(i, action, ch) {
   const c = get(i.guild.id);
+  c.inscricaoChannelId ??= camp(i.guild.id).channels.camp_inscricao ?? null; // o anúncio já mostra o canal de inscrição
   const payload = action === 'pubann' ? announceMessage(c) : action === 'pubrules' ? rulesMessage(c) : signupMessage(c);
   const msg = await ch.send(payload).catch((err) => err);
   if (msg instanceof Error) return i.update({ content: null, files: [], attachments: [], embeds: [error(`Não consegui publicar em ${ch}: ${msg.message}`)], components: [row(btn('camp:panel', 'Voltar', '⬅️'))] });
   if (action === 'pubsignup') { c.signupMsg = { channelId: ch.id, messageId: msg.id }; c.inscricaoChannelId = ch.id; db.save(); }
+  if (action === 'pubann') { c.announceMsg = { channelId: ch.id, messageId: msg.id }; db.save(); }
   return i.update({ ...staffPanel(i.guild), embeds: [success(`Publicado em ${ch}.`), ...staffPanel(i.guild).embeds] });
 }
 
