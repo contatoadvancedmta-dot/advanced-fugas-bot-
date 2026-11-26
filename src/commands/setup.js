@@ -21,6 +21,15 @@ const SECTIONS = {
       whitelistresultado: 'Resultados da whitelist'
     }
   },
+  clas: {
+    title: '🏴 Clãs',
+    items: {
+      xcla: 'Marcar X-Clã (onde saem os desafios)',
+      lideres: 'Chat dos líderes (envia o painel do líder)',
+      clas_categoria: 'Categoria dos canais de clã',
+      clas_lista: 'Lista de clãs (atualiza sozinha)'
+    }
+  },
   staff: {
     title: '🛠️ Canais da staff (trancados)',
     items: {
@@ -36,6 +45,7 @@ const SECTIONS = {
     title: '🏆 Rankings (atualizam sozinhos)',
     items: {
       ranking_tickets: 'Ranking de tickets (quem mais assumiu)',
+      ranking_clas: 'Ranking de clãs (X-Clã)',
       ranking_apoiadores: 'Ranking de apoiadores',
       ranking_fugas: 'Ranking das fugas',
       rankings: 'Todos os rankings juntos'
@@ -55,6 +65,7 @@ const TYPES_FOR = {
   canal: [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildCategory],
   staff: [ChannelType.GuildText],
   ranking: [ChannelType.GuildText, ChannelType.GuildAnnouncement],
+  clas: [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildCategory],
   cidade: [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice]
 };
 
@@ -73,7 +84,8 @@ const ROLES = {
   whitelist: 'Cargo de whitelist aprovada',
   staff: 'Cargo geral de staff',
   ticket: 'Cargo extra que vê os tickets',
-  ...Object.fromEntries(Object.entries(config.levels).map(([k, v]) => [k, `Cargo de ${v.label}`]))
+  ...Object.fromEntries(Object.entries(config.levels).map(([k, v]) => [k, `Cargo de ${v.label}`])),
+  lider_cla: 'Cargo de Líder de clã (acesso ao chat dos líderes)'
 };
 
 function channelSub(s, name, description) {
@@ -91,6 +103,7 @@ module.exports = {
     .addSubcommand((s) => channelSub(s, 'staff', 'Define um canal da equipe — tranca para só a staff ver')
       .addBooleanOption((o) => o.setName('trancar').setDescription('Trancar o canal para só a staff ver (padrão: sim)')))
     .addSubcommand((s) => channelSub(s, 'ranking', 'Define o canal de cada ranking'))
+    .addSubcommand((s) => channelSub(s, 'clas', 'Canais dos clãs (X-Clã, chat dos líderes, lista)'))
     .addSubcommand((s) => channelSub(s, 'cidade', 'Status da cidade e contadores'))
     .addSubcommand((s) => s.setName('cargo').setDescription('Define um cargo')
       .addStringOption((o) => o.setName('tipo').setDescription('Tipo').setRequired(true)
@@ -113,31 +126,8 @@ module.exports = {
     const EPH = MessageFlags.Ephemeral;
 
     if (SECTIONS[sub]) {
-      const tipo = interaction.options.getString('tipo');
-      const ch = interaction.options.getChannel('canal');
-      g.channels[tipo] = ch.id; db.save();
-      const notes = [];
-
-      if (sub === 'staff' && interaction.options.getBoolean('trancar') !== false && ch.permissionOverwrites) {
-        const roles = await lockToStaff(interaction, ch, g);
-        notes.push(`${e.lock} Canal trancado: só ${roles.length ? roles.map((r) => `<@&${r}>`).join(', ') : 'quem é admin'} vê.`);
-        if (!roles.length) notes.push(`${e.warn} Nenhum cargo de staff configurado — use \`/setup cargo\` (Suporte, Moderador, Admin) e rode de novo.`);
-      }
-      if (tipo === 'sugestoes_staff') {
-        await ch.send(require('../handlers/suggestions').staffPanel()).catch(() => null);
-        notes.push(`${e.check} Painel com o botão **Enviar sugestão** foi enviado lá.`);
-      }
-      if (sub === 'ranking') {
-        require('../handlers/rankingBoard').update(interaction.client).catch(() => null);
-        notes.push(`${e.check} Ranking postado — atualiza sozinho.`);
-      }
-      if (tipo === 'status') {
-        g.status = {};
-        db.save();
-        require('../handlers/fivem').tick(interaction.client).catch(() => null);
-        notes.push(`${e.check} Status postado — atualiza a cada minuto.`);
-      }
-      return interaction.reply({ embeds: [success(`**${CHANNELS[tipo]}** → ${ch}${notes.length ? `\n${notes.join('\n')}` : ''}`, 'Configurado')], flags: EPH });
+      const notes = await applyChannel(interaction, sub, interaction.options.getString('tipo'), interaction.options.getChannel('canal'), interaction.options.getBoolean('trancar') !== false);
+      return interaction.reply({ embeds: [success(notes.join('\n'), 'Configurado')], flags: EPH });
     }
     if (sub === 'cargo') {
       const tipo = interaction.options.getString('tipo');
@@ -150,14 +140,60 @@ module.exports = {
       const n = await require('../handlers/tickets').syncStaffAccess(interaction.guild);
       return interaction.editReply({ embeds: [success(`**${ROLES[tipo]}** definido como ${role}.\n${e.ticket} ${role} agora vê os tickets${n ? ` (inclusive os **${n}** que estão abertos)` : ''}.`)] });
     }
+    return interaction.reply({ embeds: [configEmbed(interaction.guild)], flags: EPH });
+  }
+};
+
+function configEmbed(guild) {
+    const g = db.guild(guild.id);
     const fmt = (map, store, mention) => Object.entries(map)
       .map(([k, label]) => `${store[k] ? e.check : e.cross} ${label}: ${store[k] ? mention(store[k]) : '`não definido`'}`).join('\n');
     const embed = base().setTitle(`⚙️ Configuração — ${config.brand.name}`)
-      .setDescription(`Use \`/setup canal\`, \`/setup staff\`, \`/setup ranking\`, \`/setup cidade\` e \`/setup cargo\`.`)
+      .setDescription(`Use \`/setup canal\`, \`/setup staff\`, \`/setup ranking\`, \`/setup clas\`, \`/setup cidade\` e \`/setup cargo\`.`)
       .addFields(
         ...Object.entries(SECTIONS).map(([k, sec]) => ({ name: `${sec.title} — /setup ${k}`, value: fmt(sec.items, g.channels, (id) => `<#${id}>`).slice(0, 1024) })),
         { name: '👥 Cargos — /setup cargo', value: fmt(ROLES, g.roles, (id) => `<@&${id}>`).slice(0, 1024) }
       );
-    return interaction.reply({ embeds: [embed], flags: EPH });
+    return embed;
+}
+
+/**
+ * Salva um canal e faz o que cada tipo precisa (trancar, mandar painel, postar ranking/status).
+ * Usado pelo /setup e pela Central de Controle. Retorna as linhas de resultado.
+ */
+async function applyChannel(ctx, section, tipo, ch, lock = true) {
+  const g = db.guild(ctx.guild.id);
+  g.channels[tipo] = ch.id;
+  db.save();
+  const notes = [`**${CHANNELS[tipo]}** → ${ch}`];
+  if (section === 'staff' && lock && ch.permissionOverwrites) {
+    const roles = await lockToStaff(ctx, ch, g);
+    notes.push(`${e.lock} Canal trancado: só ${roles.length ? roles.map((r) => `<@&${r}>`).join(', ') : 'quem é admin'} vê.`);
+    if (!roles.length) notes.push(`${e.warn} Nenhum cargo de staff configurado — configure Suporte, Moderador e Admin nos cargos e repita.`);
   }
-};
+  const AUTO_PANEL = {
+    sugestoes_staff: () => require('../handlers/suggestions').staffPanel(),
+    lideres: () => require('../handlers/clas').leaderPanel()
+  };
+  if (AUTO_PANEL[tipo] && ch.send) {
+    await ch.send(AUTO_PANEL[tipo]()).catch(() => null);
+    notes.push(`${e.check} Painel com o botão já foi enviado lá.`);
+  }
+  if (section === 'ranking' || tipo === 'clas_lista') {
+    require('../handlers/rankingBoard').update(ctx.client).catch(() => null);
+    notes.push(`${e.check} Postado — atualiza sozinho.`);
+  }
+  if (tipo === 'status') {
+    g.status = {};
+    db.save();
+    require('../handlers/fivem').tick(ctx.client).catch(() => null);
+    notes.push(`${e.check} Status postado — atualiza a cada minuto.`);
+  }
+  return notes;
+}
+
+module.exports.SECTIONS = SECTIONS;
+module.exports.ROLES = ROLES;
+module.exports.TYPES_FOR = TYPES_FOR;
+module.exports.applyChannel = applyChannel;
+module.exports.configEmbed = configEmbed;

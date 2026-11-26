@@ -8,11 +8,13 @@ const ticketStats = require('./ticketStats');
 const BOARDS = {
   tickets: (guild) => ticketStats.rankingEmbed(guild, 30),
   apoiadores: (guild) => ticketStats.supportersEmbed(guild, 0),
-  fugas: (guild) => require('./fugas').rankingEmbed(guild, 'geral')
+  fugas: (guild) => require('./fugas').rankingEmbed(guild, 'geral'),
+  clas: (guild) => require('./clas').rankingEmbed(guild),
+  clas_lista: (guild) => require('./clas').listEmbed(guild)
 };
 
 // canal próprio de cada ranking (se não tiver, usa o canal geral "rankings")
-const CHANNEL_KEYS = { tickets: 'ranking_tickets', apoiadores: 'ranking_apoiadores', fugas: 'ranking_fugas' };
+const CHANNEL_KEYS = { tickets: 'ranking_tickets', apoiadores: 'ranking_apoiadores', fugas: 'ranking_fugas', clas: 'ranking_clas', clas_lista: 'clas_lista' };
 
 let running = false;
 async function update(client) {

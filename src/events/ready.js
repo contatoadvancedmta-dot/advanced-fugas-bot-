@@ -13,6 +13,7 @@ module.exports = {
   once: true,
   async execute(client) {
     console.log(`\n🔥 ${config.brand.name} online como ${client.user.tag}\n`);
+    require('../utils/city').applySaved(); // IP salvo pela Central de Controle
 
     // Logo automática: ícone do servidor Advanced, ou a foto do bot
     if (!config.brand.logo || config.brand.logo === 'auto' || config.brand.logo.includes('/embed/avatars/')) {
@@ -42,7 +43,7 @@ module.exports = {
 
     // Sorteios e status da cidade
     setInterval(() => giveaways.tick(client), 15_000);
-    setInterval(() => { moderation.tick(client); announce.tick(client); fugas.tick(client); }, 30_000);
+    setInterval(() => { moderation.tick(client); announce.tick(client); fugas.tick(client); require('../handlers/clas').tick(client).catch(() => null); }, 30_000);
     setTimeout(() => rankingBoard.update(client).catch(() => null), 15_000);
     setInterval(() => rankingBoard.update(client).catch(() => null), 10 * 60_000); // canal de rankings // ban temporário + anúncios agendados
     fivem.tick(client);

@@ -144,8 +144,17 @@ module.exports = {
     { id: 'suporte', label: 'Suporte Geral', description: 'Dúvidas e ajuda no servidor', emoji: 'support' },
     { id: 'denuncia', label: 'Denúncia', description: 'Denunciar jogador ou staff', emoji: 'report' },
     { id: 'doacao', label: 'Doações / VIP', description: 'Compras, VIPs e benefícios', emoji: 'money' },
-    { id: 'bug', label: 'Reportar Bug', description: 'Encontrou um bug na cidade?', emoji: 'bug' }
+    { id: 'bug', label: 'Reportar Bug', description: 'Encontrou um bug na cidade?', emoji: 'bug' },
+    { id: 'cla', label: 'Clãs', description: 'Registrar clã, tag e assuntos de clã', emoji: 'shield' }
   ],
+
+  // Clãs (gerenciador de tag dos líderes + X-Clã)
+  clas: {
+    maxMembers: 0,          // limite de membros por clã (0 = sem limite)
+    reminderMinutes: 15,    // lembrete antes do X-Clã
+    channelPrefix: '🏁・',   // nome do canal criado para o clã
+    hoistRoles: false       // mostrar o cargo do clã separado na lista de membros
+  },
 
   /**
    * PIX (usado no botão "Gerar PIX" dos tickets)

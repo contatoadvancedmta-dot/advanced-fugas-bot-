@@ -69,8 +69,11 @@ const getTicket = (interaction) => db.guild(interaction.guild.id).tickets[intera
 
 /* ───────────── Painel de controle dentro do ticket ───────────── */
 
-function controlRows() {
-  return [
+function controlRows(t) {
+  const extra = t?.type === 'cla'
+    ? [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('cla:reg').setLabel('Registrar clã (cria a tag e dá ao líder)').setEmoji('🏴').setStyle(ButtonStyle.Success))]
+    : [];
+  return [...extra,
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('ticket:claim').setLabel('Assumir').setEmoji(e.claim).setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId('ticket:notify').setLabel('Notificar membro').setEmoji(e.announce).setStyle(ButtonStyle.Secondary),
@@ -107,7 +110,7 @@ function ticketEmbed(t, user) {
 async function refreshControl(channel, t) {
   const msg = t.controlMessageId && (await channel.messages.fetch(t.controlMessageId).catch(() => null));
   const user = await channel.client.users.fetch(t.ownerId);
-  if (msg) await msg.edit({ embeds: [ticketEmbed(t, user)], components: controlRows() }).catch(() => null);
+  if (msg) await msg.edit({ embeds: [ticketEmbed(t, user)], components: controlRows(t) }).catch(() => null);
 }
 
 async function dmOwner(client, t, embed, components = []) {
@@ -152,7 +155,7 @@ async function open(interaction) {
   g.tickets[channel.id] = t;
 
   const mentions = staffRoleIds(g).map((id) => `<@&${id}>`).join(' ');
-  const msg = await channel.send({ content: `${interaction.user} ${mentions}`, embeds: [ticketEmbed(t, interaction.user)], components: controlRows() });
+  const msg = await channel.send({ content: `${interaction.user} ${mentions}`, embeds: [ticketEmbed(t, interaction.user)], components: controlRows(t) });
   await msg.pin().catch(() => null);
   t.controlMessageId = msg.id;
   db.save();
@@ -209,7 +212,7 @@ async function members(interaction, t) {
     }
   }
   db.save();
-  await interaction.update({ embeds: [ticketEmbed(t, await interaction.client.users.fetch(t.ownerId))], components: controlRows() });
+  await interaction.update({ embeds: [ticketEmbed(t, await interaction.client.users.fetch(t.ownerId))], components: controlRows(t) });
   const parts = [];
   if (added.length) parts.push(`${e.check} Adicionado(s): ${added.map((id) => `<@${id}>`).join(' ')}`);
   if (removed.length) parts.push(`${e.cross} Removido(s): ${removed.map((id) => `<@${id}>`).join(' ')}`);

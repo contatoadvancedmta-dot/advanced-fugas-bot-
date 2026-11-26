@@ -196,3 +196,6 @@ module.exports = {
     await i.reply({ embeds: [embed], files: [file], flags: EPH });
   }
 };
+
+module.exports.configEmbed = configEmbed;
+module.exports.configModal = configModal;
