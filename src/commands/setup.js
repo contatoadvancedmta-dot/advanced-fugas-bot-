@@ -36,6 +36,7 @@ const SECTIONS = {
       camp_anuncios: 'Anúncios do campeonato',
       camp_regras: 'Regras do campeonato',
       camp_inscricao: 'Inscrição (painel com botão)',
+      camp_analise: 'Análise das inscrições (staff aprova nick e ID)',
       camp_chaves: 'Chaveamento / resultados (padrão: anúncios)',
       camp_chat: 'Chat dos participantes'
     }
@@ -179,7 +180,7 @@ async function applyChannel(ctx, section, tipo, ch, lock = true) {
   g.channels[tipo] = ch.id;
   db.save();
   const notes = [`**${CHANNELS[tipo]}** → ${ch}`];
-  if (section === 'staff' && lock && ch.permissionOverwrites) {
+  if ((section === 'staff' || tipo === 'camp_analise') && lock && ch.permissionOverwrites) {
     const roles = await lockToStaff(ctx, ch, g);
     notes.push(`${e.lock} Canal trancado: só ${roles.length ? roles.map((r) => `<@&${r}>`).join(', ') : 'quem é admin'} vê.`);
     if (!roles.length) notes.push(`${e.warn} Nenhum cargo de staff configurado — configure Suporte, Moderador e Admin nos cargos e repita.`);

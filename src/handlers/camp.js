@@ -26,6 +26,8 @@ function camp(guildId) {
 }
 const get = (gid) => camp(gid).camp;
 const phaseName = (n) => (n <= 2 ? 'FINAL' : n <= 4 ? 'Semifinal' : n <= 8 ? 'Quartas de final' : n <= 16 ? 'Oitavas de final' : `Primeira fase (${n} jogadores)`);
+const approved = (c) => c.inscritos.filter((p) => (p.status ?? 'aprovado') === 'aprovado');
+const pendingList = (c) => c.inscritos.filter((p) => p.status === 'pendente');
 const mention = (c, uid) => { const p = c.inscritos.find((x) => x.userId === uid); return `<@${uid}>${p?.nick ? ` (${p.nick})` : ''}`; };
 
 /* ───────────── Datas ───────────── */
@@ -91,16 +93,19 @@ function rulesMessage(c) {
 
 function signupEmbed(c) {
   const open = c.status === 'inscricoes' && (!c.deadline || Date.now() < c.deadline) && c.inscritos.length < c.max;
-  const list = c.inscritos.map((p, n) => `\`${String(n + 1).padStart(2, '0')}\` <@${p.userId}> — ${p.nick} \`#${p.gameId}\``);
+  const list = approved(c).map((p, n) => `\`${String(n + 1).padStart(2, '0')}\` <@${p.userId}> — ${p.nick} \`#${p.gameId}\``);
+  const waiting = pendingList(c).length;
   return base()
     .setTitle(`✍️ Inscrições — ${c.title}`)
     .setDescription([
       `📅 **Campeonato:** ${fmtDate(c.date)}`,
       `🗓️ **Inscrições até:** ${fmtDate(c.deadline)}`,
-      `👥 **Inscritos:** **${c.inscritos.length}/${c.max}** (mínimo ${c.min})`,
+      `👥 **Aprovados:** **${approved(c).length}/${c.max}** (mínimo ${c.min})${waiting ? ` • ${e.pending} ${waiting} em análise` : ''}`,
       open ? `${e.approved} **Inscrições abertas!** Clique em **Inscrever-me**.` : `${e.lock} **Inscrições encerradas.**`,
       line,
-      list.length ? list.join('\n').slice(0, 3500) : '*Ninguém inscrito ainda. Seja o primeiro!*'
+      list.length ? list.join('\n').slice(0, 3500) : '*Nenhum inscrito aprovado ainda. Seja o primeiro!*',
+      line,
+      `${e.info} Sua inscrição passa pela **staff**, que confere seu **nick e ID**. Você recebe a resposta na DM.`
     ].join('\n'));
 }
 
@@ -124,7 +129,7 @@ async function refreshSignup(guild) {
 /* ───────────── Chaveamento ───────────── */
 
 function drawPhase(c) {
-  const players = c.rounds.length ? c.rounds.at(-1).matches.map((m) => m.winner ?? m.bye).filter(Boolean) : c.inscritos.map((p) => p.userId);
+  const players = c.rounds.length ? c.rounds.at(-1).matches.map((m) => m.winner ?? m.bye).filter(Boolean) : approved(c).map((p) => p.userId);
   const pool = shuffle(players);
   const matches = [];
   let bye = null;
@@ -181,19 +186,20 @@ function staffPanel(guild) {
   embed.setDescription([
     `**${c.title}**`,
     `📅 ${fmtDate(c.date)} • 🗓️ inscrições até ${fmtDate(c.deadline)}`,
-    `👥 **${c.inscritos.length}/${c.max}** inscritos (mínimo ${c.min})`,
+    `👥 **${approved(c).length}/${c.max}** aprovados (mínimo ${c.min})${pendingList(c).length ? ` • ${e.pending} **${pendingList(c).length} aguardando análise**` : ''}`,
     `📌 **Status:** ${{ inscricoes: '✍️ inscrições abertas', fechado: '🔒 inscrições fechadas', andamento: `⚔️ em andamento — ${r?.name ?? ''}`, finalizado: '👑 finalizado' }[c.status]}`,
     line,
     `📢 Anúncio: ${g.channels.camp_anuncios ? `<#${g.channels.camp_anuncios}>` : '`canal não configurado`'}`,
     `📜 Regras: ${g.channels.camp_regras ? `<#${g.channels.camp_regras}>` : '`canal não configurado`'}`,
     `✍️ Inscrição: ${g.channels.camp_inscricao ? `<#${g.channels.camp_inscricao}>` : '`canal não configurado`'}`,
+    `🔎 Análise das inscrições: ${g.channels.camp_analise ? `<#${g.channels.camp_analise}>` : '`canal não configurado (as inscrições entram direto)`'}`,
     `🎫 Cargo de participante: ${g.roles.camp_participante ? `<@&${g.roles.camp_participante}>` : '`não configurado`'}`
   ].join('\n'));
   return { content: null, embeds: [embed], files: [], attachments: [], components: [
     row(btn('camp:edit', 'Editar dados', '✏️'), btn('camp:pubann', 'Publicar anúncio', '📢', ButtonStyle.Primary), btn('camp:pubrules', 'Publicar regras', '📜', ButtonStyle.Primary), btn('camp:pubsignup', 'Publicar inscrição', '✍️', ButtonStyle.Primary)),
     row(
       c.status === 'inscricoes' ? btn('camp:close', 'Fechar inscrições', '🔒') : btn('camp:open', 'Reabrir inscrições', '🔓', ButtonStyle.Secondary, c.status !== 'fechado'),
-      btn('camp:draw', c.rounds.length ? 'Ver chaveamento' : 'Sortear chaves', '🎲', ButtonStyle.Success, c.inscritos.length < 2),
+      btn('camp:draw', c.rounds.length ? 'Ver chaveamento' : 'Sortear chaves', '🎲', ButtonStyle.Success, approved(c).length < 2),
       btn('camp:reset', 'Encerrar / novo campeonato', '🗑️', ButtonStyle.Danger))
   ] };
 }
@@ -225,7 +231,7 @@ async function tick(client) {
     db.save();
     await refreshSignup(guild);
     const ch = guild.channels.cache.get(camp(guild.id).channels.camp_anuncios);
-    await ch?.send({ embeds: [base().setDescription(`${e.lock} **Inscrições encerradas!** ${c.inscritos.length} jogadores inscritos.${c.inscritos.length % 2 ? '\n⚠️ Número ímpar — a organização vai ajustar as chaves.' : ''}`)] }).catch(() => null);
+    await ch?.send({ embeds: [base().setDescription(`${e.lock} **Inscrições encerradas!** ${approved(c).length} jogadores aprovados.${pendingList(c).length ? ` (${pendingList(c).length} ainda em análise)` : ''}${approved(c).length % 2 ? '\n⚠️ Número ímpar — a organização vai ajustar as chaves.' : ''}`)] }).catch(() => null);
   }
 }
 
@@ -241,7 +247,8 @@ async function handle(i) {
   if (action === 'join') {
     if (!c || c.status !== 'inscricoes') return i.reply({ embeds: [error('As inscrições não estão abertas.')], flags: EPH });
     if (c.deadline && Date.now() >= c.deadline) return i.reply({ embeds: [error('O prazo de inscrição acabou.')], flags: EPH });
-    if (c.inscritos.some((p) => p.userId === i.user.id)) return i.reply({ embeds: [error('Você já está inscrito! ✅')], flags: EPH });
+    const mine = c.inscritos.find((p) => p.userId === i.user.id);
+    if (mine) return i.reply({ embeds: [error(mine.status === 'pendente' ? 'Sua inscrição já está **em análise** pela staff. Aguarde a resposta na DM.' : 'Você já está inscrito! ✅')], flags: EPH });
     if (c.inscritos.length >= c.max) return i.reply({ embeds: [error('As vagas acabaram.')], flags: EPH });
     const nick = require('./fugas').player(guild.id, i.user.id).nick ?? '';
     return i.showModal(new ModalBuilder().setCustomId('camp:joinm').setTitle(`Inscrição — ${c.title}`.slice(0, 45)).addLabelComponents(
@@ -257,20 +264,69 @@ async function handle(i) {
     const gameId = i.fields.getTextInputValue('id').replace(/\D/g, '');
     if (!gameId) return i.reply({ embeds: [error('O ID precisa ser um número.')], flags: EPH });
     if (c.inscritos.some((p) => p.nick.toLowerCase() === nick.toLowerCase() || p.gameId === gameId)) return i.reply({ embeds: [error('Esse nick ou ID já está inscrito.')], flags: EPH });
-    c.inscritos.push({ userId: i.user.id, nick, gameId, at: Date.now() });
+    const entry = { userId: i.user.id, nick, gameId, at: Date.now(), status: 'pendente' };
+    c.inscritos.push(entry);
     db.save();
-    if (g.roles.camp_participante) await i.member.roles.add(g.roles.camp_participante, 'Inscrito no campeonato').catch(() => null);
+    const review = guild.channels.cache.get(g.channels.camp_analise);
+    if (!review) { // sem canal de análise: entra direto
+      await approve(guild, c, entry, null);
+      return i.reply({ embeds: [success(`Inscrição confirmada! Você é o **${approved(c).length}º** inscrito. 🏆`, 'Inscrito')], flags: EPH });
+    }
+    const roles = ['suporte', 'moderador'].map((k) => g.roles[k]).filter(Boolean).map((r) => `<@&${r}>`).join(' ');
+    const msg = await review.send({ content: roles || undefined, embeds: [reviewEmbed(c, entry, i.user)], components: reviewButtons(entry) });
+    entry.review = { channelId: review.id, messageId: msg.id };
+    db.save();
     await refreshSignup(guild);
-    return i.reply({ embeds: [success(`Inscrição confirmada! Você é o **${c.inscritos.length}º** inscrito. 🏆${g.channels.camp_chat ? `\nFique de olho em <#${g.channels.camp_chat}>.` : ''}`, 'Inscrito')], flags: EPH });
+    return i.reply({ embeds: [success(`Inscrição enviada! A staff vai conferir seu **nick (${nick})** e **ID (#${gameId})**.\nVocê recebe a resposta aqui na DM. ${e.pending}`, 'Em análise')], flags: EPH });
   }
   if (action === 'leave') {
     if (!c || c.status !== 'inscricoes') return i.reply({ embeds: [error('Não dá para sair agora — as chaves já foram fechadas. Fale com a organização.')], flags: EPH });
-    if (!c.inscritos.some((p) => p.userId === i.user.id)) return i.reply({ embeds: [error('Você não está inscrito.')], flags: EPH });
+    const me = c.inscritos.find((p) => p.userId === i.user.id);
+    if (!me) return i.reply({ embeds: [error('Você não está inscrito.')], flags: EPH });
     c.inscritos = c.inscritos.filter((p) => p.userId !== i.user.id);
+    if (me.review) await closeReview(guild, me, `${e.leave} O jogador desistiu da inscrição.`);
     db.save();
     if (g.roles.camp_participante) await i.member.roles.remove(g.roles.camp_participante).catch(() => null);
     await refreshSignup(guild);
     return i.reply({ embeds: [success('Você saiu da inscrição.')], flags: EPH });
+  }
+
+  /* análise das inscrições (Suporte+) */
+  if (['ap', 'rj', 'rjm', 'fix', 'fixm'].includes(action)) {
+    if (!(await perms.check(i, 'suporte'))) return;
+    const entry = c?.inscritos.find((p) => p.userId === a);
+    if (!entry || entry.status !== 'pendente') return i.reply({ embeds: [error('Essa inscrição já foi analisada (ou o jogador desistiu).')], flags: EPH });
+    if (action === 'ap') {
+      await i.deferReply({ flags: EPH });
+      await approve(guild, c, entry, i.user);
+      return i.editReply({ embeds: [success(`<@${a}> aprovado: **${entry.nick}** \`#${entry.gameId}\`.`)] });
+    }
+    if (action === 'rj') return i.showModal(new ModalBuilder().setCustomId(`camp:rjm:${a}`).setTitle('Recusar inscrição').addLabelComponents(
+      new LabelBuilder().setLabel('Motivo (o jogador recebe na DM)').setTextInputComponent(new TextInputBuilder().setCustomId('motivo').setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(400).setPlaceholder('Ex: ID não confere com a conta'))));
+    if (action === 'rjm') {
+      const motivo = i.fields.getTextInputValue('motivo').trim();
+      c.inscritos = c.inscritos.filter((p) => p.userId !== a);
+      db.save();
+      await closeReview(guild, entry, `${e.rejected} **Recusado** por ${i.user}\n> ${motivo}`);
+      (await i.client.users.fetch(a).catch(() => null))?.send({ embeds: [base().setTitle(`${e.rejected} Inscrição recusada — ${c.title}`).setDescription(`> ${motivo}\n\nSe foi um engano, corrija e inscreva-se de novo enquanto as inscrições estiverem abertas.`)] }).catch(() => null);
+      await refreshSignup(guild);
+      return i.reply({ embeds: [success(`Inscrição de <@${a}> recusada.`)], flags: EPH });
+    }
+    if (action === 'fix') return i.showModal(new ModalBuilder().setCustomId(`camp:fixm:${a}`).setTitle('Corrigir e aprovar').addLabelComponents(
+      new LabelBuilder().setLabel('Nick correto').setTextInputComponent(new TextInputBuilder().setCustomId('nick').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(32).setValue(entry.nick)),
+      new LabelBuilder().setLabel('ID correto').setTextInputComponent(new TextInputBuilder().setCustomId('id').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(10).setValue(entry.gameId))));
+    if (action === 'fixm') {
+      const nick = i.fields.getTextInputValue('nick').replace(/#[0-9a-f]{6}/gi, '').trim();
+      const gameId = i.fields.getTextInputValue('id').replace(/\D/g, '');
+      if (!nick || !gameId) return i.reply({ embeds: [error('Nick e ID (número) são obrigatórios.')], flags: EPH });
+      if (c.inscritos.some((p) => p.userId !== a && (p.nick.toLowerCase() === nick.toLowerCase() || p.gameId === gameId))) return i.reply({ embeds: [error('Esse nick ou ID já é de outro inscrito.')], flags: EPH });
+      const before = `${entry.nick} #${entry.gameId}`;
+      entry.nick = nick;
+      entry.gameId = gameId;
+      await i.deferReply({ flags: EPH });
+      await approve(guild, c, entry, i.user, `✏️ Corrigido de \`${before}\` para \`${nick} #${gameId}\``);
+      return i.editReply({ embeds: [success(`<@${a}> aprovado com os dados corrigidos: **${nick}** \`#${gameId}\`.`)] });
+    }
   }
 
   /* staff */
@@ -321,7 +377,8 @@ async function handle(i) {
       return respond(staffPanel(guild));
     case 'draw': {
       if (c.rounds.length) return respond({ ...bracketView(c), content: null });
-      if (c.inscritos.length < 2) return i.reply({ embeds: [error('Precisa de pelo menos 2 inscritos.')], flags: EPH });
+      if (approved(c).length < 2) return i.reply({ embeds: [error('Precisa de pelo menos 2 inscritos aprovados.')], flags: EPH });
+      if (pendingList(c).length) return i.reply({ embeds: [error(`Ainda tem **${pendingList(c).length}** inscrição(ões) aguardando análise. Aprove ou recuse antes de sortear.`)], flags: EPH });
       c.status = 'andamento';
       const r = drawPhase(c);
       db.save();
@@ -389,6 +446,46 @@ async function handle(i) {
       return i.editReply(staffPanel(guild));
     }
   }
+}
+
+function reviewEmbed(c, entry, user) {
+  return base()
+    .setAuthor({ name: `Inscrição • ${user?.username ?? entry.userId}`, iconURL: user?.displayAvatarURL?.() })
+    .setTitle(`✍️ Nova inscrição — ${c.title}`)
+    .addFields(
+      { name: `${e.user} Discord`, value: `<@${entry.userId}>\n\`${entry.userId}\``, inline: true },
+      { name: '🎮 Nick no MTA', value: `**${entry.nick}**`, inline: true },
+      { name: '🆔 ID na cidade', value: `**#${entry.gameId}**`, inline: true },
+      { name: `${e.clock} Conta do Discord criada`, value: user?.createdTimestamp ? ts(user.createdTimestamp, 'R') : '—', inline: true },
+      { name: '👥 Vagas', value: `${approved(c).length}/${c.max} aprovados`, inline: true }
+    )
+    .setThumbnail(user?.displayAvatarURL?.({ size: 256 }) ?? null);
+}
+
+const reviewButtons = (entry) => [row(
+  btn(`camp:ap:${entry.userId}`, 'Aprovar', e.check, ButtonStyle.Success),
+  btn(`camp:fix:${entry.userId}`, 'Corrigir e aprovar', '✏️', ButtonStyle.Primary),
+  btn(`camp:rj:${entry.userId}`, 'Recusar', e.cross, ButtonStyle.Danger))];
+
+async function closeReview(guild, entry, text) {
+  if (!entry.review) return;
+  const msg = await guild.channels.cache.get(entry.review.channelId)?.messages.fetch(entry.review.messageId).catch(() => null);
+  if (!msg) return;
+  await msg.edit({ content: null, embeds: [...msg.embeds, base().setDescription(text)], components: [] }).catch(() => null);
+}
+
+/** Aprova a inscrição: dá o cargo, avisa na DM, atualiza a lista */
+async function approve(guild, c, entry, by, note) {
+  const g = camp(guild.id);
+  entry.status = 'aprovado';
+  entry.approvedBy = by?.id ?? null;
+  db.save();
+  const member = await guild.members.fetch(entry.userId).catch(() => null);
+  if (g.roles.camp_participante) await member?.roles.add(g.roles.camp_participante, 'Inscrição aprovada no campeonato').catch(() => null);
+  if (by) await closeReview(guild, entry, `${e.approved} **Aprovado** por ${by}${note ? `\n${note}` : ''}`);
+  (await guild.client.users.fetch(entry.userId).catch(() => null))?.send({ embeds: [base().setTitle(`${e.approved} Inscrição aprovada — ${c.title}`)
+    .setDescription(`Você está no campeonato com o nick **${entry.nick}** \`#${entry.gameId}\`.${note ? `\n${note}` : ''}\n\n📅 ${fmtDate(c.date)}${g.channels.camp_chat ? `\n💬 Fique de olho em <#${g.channels.camp_chat}>.` : ''}`)] }).catch(() => null);
+  await refreshSignup(guild);
 }
 
 function bracketView(c) {
